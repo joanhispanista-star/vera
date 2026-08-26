@@ -10,9 +10,20 @@ capacitar al que capacita es un gasto que nunca termina.
 
 ## Cómo abrirla
 
-Doble clic en **`ABRIR.cmd`**. Eso levanta el servidor local y abre
-`http://localhost:8240` en el navegador. La cámara y el micrófono solo
-funcionan por localhost — por eso no basta con abrir el `index.html` a secas.
+**El link público (funciona siempre, desde cualquier aparato):**
+https://joanhispanista-star.github.io/vera/ — publicada en GitHub Pages
+(repo público `joanhispanista-star/vera`) desde el 26-ago-2026. Por ser HTTPS,
+la cámara y el micrófono funcionan desde cualquier computador o celular.
+**Publicar cambios = `git push`** (como Prisma): el sitio se reconstruye solo
+en un minuto.
+
+**En este computador, sin internet:** doble clic en **`ABRIR.cmd`**. Eso
+levanta el servidor local y abre `http://localhost:8240`. Ese link solo
+responde mientras la ventana del servidor esté abierta — ABRIR.cmd es el
+interruptor. (El detector de rostros sí necesita internet la primera vez.)
+
+Ojo: cada aparato guarda sus propios cursos editados y sus actas (memoria del
+navegador). Lo que se edita en el computador no aparece solo en el celular.
 
 - **Mejor navegador para la VOZ**: Edge (trae la voz colombiana natural
   "Salome" gratis). 
