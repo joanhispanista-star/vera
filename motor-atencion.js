@@ -67,10 +67,20 @@
       ctxOverlay = overlay.getContext('2d');
       personas = [];
 
-      return navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-        audio: false
-      }).then(function (flujo) {
+      // Cámara y micrófono se piden JUNTOS: un solo aviso del navegador, y el
+      // reconocimiento de voz ya no vuelve a preguntar a mitad del registro.
+      // El audio se apaga de inmediato: solo se quería el permiso.
+      var restriccionesVideo = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' };
+      return navigator.mediaDevices.getUserMedia({ video: restriccionesVideo, audio: true })
+        .catch(function (err) {
+          // Equipos sin micrófono tumban la petición combinada: se reintenta solo video.
+          if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
+            return navigator.mediaDevices.getUserMedia({ video: restriccionesVideo, audio: false });
+          }
+          throw err;
+        })
+        .then(function (flujo) {
+        flujo.getAudioTracks().forEach(function (t) { t.stop(); });
         video.srcObject = flujo;
         return video.play();
       }).then(function () {

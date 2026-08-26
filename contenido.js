@@ -1,20 +1,22 @@
-/* Contenido de la capacitación.
-   El contenido vive en un formato de texto plano que Joan o el cliente pueden
-   editar sin saber programar (ver el editor en la app). Aquí está el de fábrica:
-   una inducción real para asesores de cobranza, porque ese es el primer cliente
-   al que se le va a mostrar la plataforma. */
+/* Contenido de la capacitación: tres cursos de fábrica, editables en la app.
+   Regla heredada de la Academia: el contenido no se inventa. Los datos legales
+   de estos cursos (horarios de la Ley 2300, los 20 días del reporte, la
+   permanencia del dato negativo) se verificaron contra la SIC, la
+   Superfinanciera y el texto de las leyes el 26-ago-2026. Si una ley cambia,
+   se corrige aquí o en el editor — nunca se deja texto viejo dictándose. */
 
 (function () {
   'use strict';
 
-  var CLAVE_LOCAL = 'vera.contenido.texto';
+  var CLAVE_CURSO_ACTIVO = 'vera.curso.activo';
+  var CLAVE_VIEJA = 'vera.contenido.texto'; // donde guardaba la primera versión
 
   // Formato del texto:
-  //   línea 1        → título de la capacitación
+  //   línea 1        → título del curso
   //   # Título       → empieza un módulo
   //   - texto        → punto que Vera lee en voz alta
   //   ? pregunta | claves separadas por coma | respuesta modelo
-  var TEXTO_DE_FABRICA = [
+  var TEXTO_INDUCCION = [
     'Inducción básica para asesores de cobranza',
     '',
     '# Bienvenida: qué es cobrar bien',
@@ -35,6 +37,68 @@
     '- Cierra en concreto: repite el acuerdo con fecha y monto, despídete con respeto y registra todo en el sistema apenas cuelgues.',
     '? Antes de mencionar la deuda, ¿qué hay que confirmar siempre? | titular, identidad, confirmar, con quién | Que estamos hablando con el titular: sin confirmar la identidad no se menciona la deuda.'
   ].join('\n');
+
+  var TEXTO_LEY = [
+    'Ley 2300 y el marco legal de la cobranza',
+    '',
+    '# La Ley 2300: las reglas del contacto',
+    '- La Ley 2300 de 2023 regula cómo se cobra en Colombia. Aplica a bancos, fintech y a las empresas de cobranza que trabajan para ellos: si usted cobra, esta ley es su manual de tránsito.',
+    '- El deudor elige el canal: si pide que no lo llamen y que le escriban, se respeta. Insistir por un canal que el cliente prohibió no es persistencia: es una infracción.',
+    '- Los horarios son de día: de lunes a viernes de siete de la mañana a siete de la noche, y los sábados de ocho de la mañana a tres de la tarde. Domingos y festivos no se cobra. Y la frecuencia también está limitada: máximo un contacto de cobranza al día.',
+    '? ¿Qué pasa si el deudor pide que solo lo contacten por escrito? | canal, respeta, escrito, elige | Se respeta: el deudor elige el canal, y saltárselo es una infracción a la Ley 2300.',
+    '',
+    '# Lo prohibido: la lista que no se negocia',
+    '- La deuda solo se habla con el titular, el codeudor o el avalista. Llamar a las referencias, a la familia o al jefe para presionar es ilegal, así sea solo para dejar razón.',
+    '- Prohibido amenazar, humillar o mentir: nada de embargos inventados, nada de hacerse pasar por juzgado o fiscalía, nada de listas públicas de morosos.',
+    '- El acoso también está prohibido: llamar sin descanso no cobra más rápido, y sí convierte una gestión legal en una sanción de la Superintendencia.',
+    '? ¿Podemos dejarle razón al jefe del deudor para que le recuerde la deuda? | no, prohibido, titular, terceros | No: divulgar la deuda a terceros está prohibido. Solo se habla con el titular, el codeudor o el avalista.',
+    '',
+    '# Habeas data financiero: el reporte a centrales',
+    '- Antes de reportar negativamente a un cliente en las centrales de riesgo hay que avisarle con al menos veinte días calendario, para que pueda pagar o discutir la deuda. Reportar sin avisar tumba el reporte y expone a la empresa.',
+    '- El dato negativo no es eterno: permanece el doble del tiempo de la mora, con tope de cuatro años desde el pago. Decir que quedará reportado de por vida es mentira, y las mentiras en cobranza se sancionan.',
+    '- El reporte se menciona como dato cierto, nunca como amenaza: su obligación está próxima a reporte y por ley debo avisarle. Esa frase informa; cualquier cosa más ya es presión ilegal.',
+    '? ¿Con cuánta anticipación hay que avisar antes de un reporte negativo? | veinte, 20 | Con al menos veinte días calendario, para que el cliente pueda pagar o discutir la deuda antes del reporte.',
+    '',
+    '# Datos personales: la Ley 1581 en cada llamada',
+    '- Antes de mencionar la deuda, confirme con quién habla. Si contesta otra persona, la deuda no existe: se pide al titular o se devuelve la llamada, y se cuelga.',
+    '- Los datos del cliente son para cobrar su deuda y nada más: compartirlos, venderlos o usarlos para otra cosa viola el habeas data.',
+    '- Toda gestión queda registrada: qué se dijo, cuándo y por qué canal. Ese registro es la defensa de la empresa el día que un cliente reclame ante la Superintendencia.',
+    '? Contesta la esposa del titular y pregunta de parte de quién llaman. ¿Qué se le dice de la deuda? | nada, no, titular, devuelvo | Nada: se pide hablar con el titular o se dice que se devuelve la llamada. La deuda no existe para terceros.'
+  ].join('\n');
+
+  var TEXTO_PERSUASION = [
+    'Persuasión ética para cobrar',
+    '',
+    '# La psicología del que debe',
+    '- El que está en mora casi nunca es un estafador: es alguien asustado que evita el tema por vergüenza. Su primera reacción es defenderse; la segunda, si usted lo permite, es negociar.',
+    '- La herramienta más rentable es el tono: calmado, sin juicio, de persona a persona. El cliente que no se siente atacado se queda en la línea, y el que se queda en la línea llega a acuerdos.',
+    '- Escuche y nombre lo que oye: entiendo, quedó sin trabajo y esto lo tiene estresado. Nombrar la emoción del otro la desarma; ignorarla la agranda.',
+    '? ¿Cuál es la primera reacción típica de un cliente en mora, y qué hacemos con ella? | defensa, defenderse, vergüenza, miedo, escuchar | Defenderse, por vergüenza o miedo. Se le baja la defensa escuchando sin juzgar, no discutiendo.',
+    '',
+    '# Objeciones: escuchar, validar, ofrecer',
+    '- Paso uno: escuchar la objeción completa sin interrumpir. El que interrumpe confirma que no le importa; el que escucha se gana el derecho a proponer.',
+    '- Paso dos: validar sin regalar la deuda. Entiendo, la situación está dura no es lo mismo que no se preocupe: se valida la emoción, no el no pago.',
+    '- Paso tres: ofrecer siempre dos opciones concretas: ¿le queda mejor abonar el quince o pagar completo el treinta? El que elige entre dos opciones ya decidió pagar; solo está eligiendo cómo.',
+    '? Un cliente dice que no tiene plata. Después de escuchar y validar, ¿cuál es el tercer paso? | opciones, dos, ofrecer, fechas | Ofrecer dos opciones concretas de pago: quien elige entre dos fechas ya decidió pagar.',
+    '',
+    '# El cierre: de la charla al compromiso',
+    '- Ancle alto: proponga primero el pago total. Frente a ese ancla, el abono parcial se siente alcanzable y el cliente lo acepta con alivio.',
+    '- Consiga síes pequeños antes del sí grande: ¿me confirma que este sigue siendo su número?, ¿le sirve el recibo por WhatsApp? El que ya dijo sí dos veces dice sí la tercera.',
+    '- Todo cierre se repite en voz alta y en concreto: entonces quedamos en cincuenta mil el viernes quince por la aplicación, ¿correcto? Compromiso que no se repite y se confirma, no existe.',
+    '? ¿Por qué se propone primero el pago total aunque sepamos que el cliente abonará menos? | ancla, anclar, parcial, alcanzable | Es el ancla: comparado con el total, el abono parcial se siente alcanzable y se acepta más fácil.',
+    '',
+    '# La línea roja: persuadir no es presionar',
+    '- La urgencia se usa solo si es cierta: el descuento autorizado vence el viernes persuade; mañana lo embargan, si no es verdad, es ilegal y destruye la confianza que cobra.',
+    '- Repetir llamadas hasta cansar no es persuasión: es acoso, y la Ley 2300 lo sanciona. Una llamada bien hecha logra lo que diez llamadas de presión no logran.',
+    '- La prueba final de toda técnica: ¿funcionaría si el cliente la conociera? El ancla y las dos opciones pasan la prueba; la mentira y la vergüenza no. Lo que no pasa la prueba, no se usa.',
+    '? Decirle al cliente que mañana pasa a jurídica, sin ser cierto: ¿se puede? | no, mentira, ilegal, falsa | No: la urgencia falsa es mentira, es sancionable y quema la relación. La urgencia solo se usa cuando es cierta.'
+  ].join('\n');
+
+  var CURSOS = [
+    { clave: 'induccion', texto: TEXTO_INDUCCION },
+    { clave: 'ley2300', texto: TEXTO_LEY },
+    { clave: 'persuasion', texto: TEXTO_PERSUASION }
+  ];
 
   // Convierte el texto plano a la estructura que usa la app.
   function analizarTexto(texto) {
@@ -69,25 +133,44 @@
     return contenido;
   }
 
-  function obtenerTexto() {
-    try {
-      return localStorage.getItem(CLAVE_LOCAL) || TEXTO_DE_FABRICA;
-    } catch (e) {
-      return TEXTO_DE_FABRICA;
-    }
+  function leer(clave) {
+    try { return localStorage.getItem(clave); } catch (e) { return null; }
+  }
+  function escribir(clave, valor) {
+    try { localStorage.setItem(clave, valor); } catch (e) { /* sin almacenamiento, queda en memoria */ }
+  }
+
+  function indiceActivo() {
+    var i = parseInt(leer(CLAVE_CURSO_ACTIVO), 10);
+    return (i >= 0 && i < CURSOS.length) ? i : 0;
+  }
+
+  function textoDe(indice) {
+    var curso = CURSOS[indice];
+    var editado = leer('vera.contenido.' + curso.clave);
+    // Lo que se editó en la versión de un solo curso era la inducción.
+    if (!editado && curso.clave === 'induccion') editado = leer(CLAVE_VIEJA);
+    return editado || curso.texto;
   }
 
   window.ContenidoLib = {
-    obtener: function () { return analizarTexto(obtenerTexto()); },
-    obtenerTexto: obtenerTexto,
+    listar: function () {
+      return CURSOS.map(function (c, i) {
+        return { indice: i, titulo: analizarTexto(textoDe(i)).titulo };
+      });
+    },
+    indiceActivo: indiceActivo,
+    elegir: function (indice) { escribir(CLAVE_CURSO_ACTIVO, String(indice)); },
+    obtener: function () { return analizarTexto(textoDe(indiceActivo())); },
+    obtenerTexto: function () { return textoDe(indiceActivo()); },
     guardarTexto: function (texto) {
-      try { localStorage.setItem(CLAVE_LOCAL, texto); } catch (e) { /* sin almacenamiento, se usa en memoria */ }
+      escribir('vera.contenido.' + CURSOS[indiceActivo()].clave, texto);
     },
     // Sin efectos: devuelve el texto de fábrica y ya. Borrar lo guardado del
     // cliente solo puede pasar cuando él oprime Guardar — "Cerrar sin guardar"
     // tiene que poder deshacer una restauración oprimida por curiosidad.
     restaurar: function () {
-      return TEXTO_DE_FABRICA;
+      return CURSOS[indiceActivo()].texto;
     },
     analizarTexto: analizarTexto
   };

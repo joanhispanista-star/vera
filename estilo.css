@@ -69,6 +69,26 @@ h1 { font-size: 30px; margin-bottom: 12px; }
 h2 { font-size: 22px; margin-bottom: 10px; }
 .intro { color: var(--texto-suave); line-height: 1.55; margin-bottom: 18px; }
 
+.selector-curso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+.selector-curso select {
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+.selector-curso select:focus { outline: none; border-color: var(--acento); }
+
 .resumen-contenido {
   background: var(--fondo-suave);
   border-radius: 10px;

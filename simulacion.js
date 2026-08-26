@@ -79,19 +79,20 @@
 
   // ── Respuestas actuadas ─────────────────────────────────
   // Jorge (el distraído) responde mal la primera pregunta: eso deja ver en el
-  // acta cómo se registra una respuesta incorrecta. Los demás responden bien.
-  function responder(idxModulo, persona) {
+  // acta cómo queda una respuesta incorrecta. Los demás contestan bien usando
+  // la respuesta modelo del curso, sea cual sea el curso elegido.
+  function responder(idxModulo, persona, pregunta) {
     var texto;
     if (persona.nombreReal === 'Jorge' && idxModulo === 0) {
-      texto = 'Eh... ¿colgar rápido para alcanzar a llamar más gente?';
-    } else if (idxModulo === 0) {
-      texto = 'Terminar con una promesa de pago, con fecha y monto concretos.';
-    } else if (idxModulo === 1) {
-      texto = 'No, eso está prohibido: la deuda solo se habla con el titular.';
-    } else if (idxModulo === 2) {
-      texto = 'Confirmar que estamos hablando con el titular antes de mencionar la deuda.';
+      // Ojo al redactar: la frase de Jorge no puede contener ninguna clave
+      // de calificación, o el acta lo marcaría como correcto por accidente.
+      texto = 'Eh... ¿me repite la pregunta, profe? Esa sí me corchó.';
+    } else if (pregunta && pregunta.respuestaModelo) {
+      texto = pregunta.respuestaModelo;
+    } else if (pregunta && pregunta.claves.length) {
+      texto = 'Yo creo que tiene que ver con: ' + pregunta.claves.join(', ') + '.';
     } else {
-      texto = 'Creo que la clave está en lo que usted acaba de explicar, profe.';
+      texto = 'Creo que es lo que usted acaba de explicar, profe.';
     }
     return { texto: texto, tardanzaMs: 1600 + Math.random() * 900 };
   }

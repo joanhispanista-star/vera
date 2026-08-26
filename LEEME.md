@@ -25,10 +25,12 @@ funcionan por localhost — por eso no basta con abrir el `index.html` a secas.
 
 ## Los dos modos
 
-1. **Sala real con cámara**: apunta la cámara al grupo. Vera detecta las caras,
-   pide el nombre de cada uno (por voz o teclado), calibra su postura de
-   "estoy mirando" y arranca. Si alguien gira la cabeza mucho rato, cierra los
-   ojos o se va, Vera lo llama por su nombre.
+1. **Sala real con cámara**: apunta la cámara al grupo (o a ti solo: con una
+   persona funciona igual y Vera te habla directo). Al empezar, el navegador
+   pide cámara y micrófono en un solo aviso — acéptalos. Vera detecta las
+   caras, pide el nombre de cada uno (por voz o teclado), calibra su postura
+   de "estoy mirando" y arranca. Si alguien gira la cabeza mucho rato, cierra
+   los ojos o se va, Vera lo llama por su nombre.
 2. **Modo demostración (sin cámara)**: una sala simulada de 4 personas hace la
    sesión completa — incluido Jorge, el de la camisa roja y las gafas, que saca
    el celular y Vera lo regaña por nombre. **Este es el modo para vender**: se
@@ -42,6 +44,24 @@ para llevar el ritmo del demo), **Terminar y generar acta** corta la sesión y
 entrega el acta con lo acumulado, y tocar la ficha de una persona permite
 corregirle el nombre. En el registro, **"Ya no está / omitir"** salta a quien
 se fue antes de decir su nombre.
+
+## Los tres cursos de fábrica
+
+Se eligen con el selector "Curso de hoy" en la pantalla de inicio:
+
+1. **Inducción básica para asesores de cobranza** — la bienvenida, la ley en
+   resumen y el método de la llamada. 3 módulos.
+2. **Ley 2300 y el marco legal de la cobranza** — horarios y canales de la
+   2300, lo prohibido, el reporte a centrales (los 20 días, la permanencia del
+   dato) y la Ley 1581 en la llamada. 4 módulos. Los datos legales se
+   verificaron contra la SIC y la Superfinanciera el 26-ago-2026.
+3. **Persuasión ética para cobrar** — psicología del deudor, manejo de
+   objeciones (escuchar-validar-ofrecer), técnicas de cierre (ancla, síes
+   pequeños) y la línea roja entre persuadir y acosar. 4 módulos.
+
+Cada curso se edita por aparte con "Editar contenido" (edita el curso
+seleccionado); "Restaurar el de fábrica" solo llena el editor, no borra nada
+hasta que se oprima Guardar.
 
 ## Editar el contenido
 
@@ -67,6 +87,10 @@ El contenido de fábrica es una inducción real para asesores de cobranza
 - **La atención es un ESTIMADO** por postura de cabeza y apertura de ojos.
   El acta lo dice explícitamente. Las decisiones sobre una persona las toma
   un humano, nunca la plataforma.
+- **El VIDEO nunca sale del computador; la VOZ puede.** El reconocimiento de
+  voz lo hace el navegador y Chrome/Edge pueden procesar ese audio en sus
+  servidores. El consentimiento lo dice tal cual, y el teclado siempre está
+  disponible como alternativa. No prometer "nada sale a internet" a secas.
 - **Todavía NO** (versión pro, cuando haya un cliente pagando): describir la
   ropa de una persona real ("el de la camisa roja") requiere visión por IA en
   la nube; un avatar hiperrealista requiere HeyGen o similar; la voz por

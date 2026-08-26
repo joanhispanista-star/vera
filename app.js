@@ -35,6 +35,12 @@
 
   // ── Inicio ──────────────────────────────────────────────
   function pintarResumen() {
+    // El selector refleja los títulos reales (por si el cliente los editó).
+    var sel = $('sel-curso');
+    sel.innerHTML = window.ContenidoLib.listar().map(function (c) {
+      return '<option value="' + c.indice + '">' + c.titulo + '</option>';
+    }).join('');
+    sel.value = String(window.ContenidoLib.indiceActivo());
     contenido = window.ContenidoLib.obtener();
     var preguntas = contenido.modulos.filter(function (m) { return m.pregunta; }).length;
     if (contenido.modulos.length === 0) {
@@ -129,6 +135,8 @@
   // ── Registro de nombres ─────────────────────────────────
   function descripcionDe(p) {
     if (modo === 'simulacion') return p.descripcion;
+    // Capacitación individual: con una sola persona, señalar posiciones sobra.
+    if (window.Motor.presentes().length === 1) return 'tú, que estás frente a la cámara';
     if (p.x < 0.36) return 'tú, la persona que veo a la izquierda de la pantalla';
     if (p.x > 0.64) return 'tú, la persona que veo a la derecha de la pantalla';
     return 'tú, la persona que veo en el centro';
@@ -339,7 +347,7 @@
     return window.Vera.decir(p.nombre + ', pregunta para ti: ' + m.pregunta.texto)
       .then(function () {
         if (modo === 'simulacion') {
-          var r = window.Simulacion.responder(idxModulo, p);
+          var r = window.Simulacion.responder(idxModulo, p, m.pregunta);
           window.Simulacion.hablar(p, 1800);
           $('barra-fase').textContent = p.nombre + ' responde: “' + r.texto + '”';
           return pausa(window.Vera.modoRapido ? 500 : r.tardanzaMs).then(function () { return r.texto; });
@@ -517,6 +525,11 @@
     pintarResumen();
 
     $('btn-comenzar').addEventListener('click', function () { ir('p-consentimiento'); });
+
+    $('sel-curso').addEventListener('change', function (ev) {
+      window.ContenidoLib.elegir(parseInt(ev.target.value, 10));
+      pintarResumen();
+    });
 
     $('chk-consentimiento').addEventListener('change', function (ev) {
       $('btn-modo-camara').disabled = !ev.target.checked;

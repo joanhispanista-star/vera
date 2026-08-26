@@ -24,6 +24,10 @@
         nombre, hace preguntas y al final entrega un acta de atención para el supervisor.
         Nadie tiene que estar presente dictando la misma inducción una y otra vez.
       </p>
+      <div class="selector-curso">
+        <label for="sel-curso">Curso de hoy:</label>
+        <select id="sel-curso"></select>
+      </div>
       <div id="inicio-resumen" class="resumen-contenido"></div>
       <div class="botonera">
         <button id="btn-comenzar" class="btn btn-primario">Iniciar capacitación</button>
@@ -40,19 +44,22 @@
   <!-- ══════════ PANTALLA: CONSENTIMIENTO ══════════ -->
   <section id="p-consentimiento" class="pantalla">
     <div class="tarjeta tarjeta-centrada">
-      <h2>Antes de encender la cámara</h2>
+      <h2>Antes de encender la cámara y el micrófono</h2>
       <div class="caja-legal">
         <p><strong>Lo que la plataforma hace con la cámara:</strong> detecta cuántas personas hay,
-        estima si miran al frente o están distraídas, y asocia un nombre a cada rostro durante la sesión.</p>
-        <p><strong>Lo que NO hace:</strong> no graba video, no toma fotos, no envía imágenes a internet.
-        Todo el análisis ocurre dentro de este computador. Al cerrar la sesión solo queda el acta
-        (nombres, atención estimada y respuestas), guardada localmente.</p>
+        estima si miran al frente o están distraídas, y asocia un nombre a cada rostro durante la sesión.
+        El video se analiza dentro de este computador: no se graba, no se toman fotos, no se sube a internet.</p>
+        <p><strong>Lo que hace con el micrófono:</strong> escuchar los nombres y las respuestas de viva voz.
+        El reconocimiento de voz lo hace el navegador, y navegadores como Chrome o Edge pueden procesar
+        ese audio en sus servidores. Quien no lo quiera, puede responder siempre por teclado.</p>
+        <p>Al cerrar la sesión solo queda el acta (nombres, atención estimada y respuestas), guardada
+        localmente. Al empezar, el navegador pedirá permiso de cámara y micrófono: acéptelos.</p>
         <p><strong>Ley 1581 de 2012 (habeas data):</strong> antes de empezar, los asistentes deben ser
-        informados de esto y autorizar el uso de la cámara. Léales este aviso o proyéctelo.</p>
+        informados de esto y autorizar el uso de la cámara y el micrófono. Léales este aviso o proyéctelo.</p>
       </div>
       <label class="fila-consentimiento">
         <input type="checkbox" id="chk-consentimiento">
-        <span>Informé a los asistentes y autorizaron el uso de la cámara en esta sesión.</span>
+        <span>Informé a los asistentes y autorizaron el uso de la cámara y el micrófono en esta sesión.</span>
       </label>
       <div class="botonera">
         <button id="btn-modo-camara" class="btn btn-primario" disabled>Empezar con cámara (sala real)</button>
