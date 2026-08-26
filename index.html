@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vera — Capacitadora Virtual</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">VERA <span>capacitadora virtual</span></div>
+  <div class="cabecera-nota">El video se procesa en este computador. No se graba ni se envía a internet.</div>
+</header>
+
+<main>
+
+  <!-- ══════════ PANTALLA: INICIO ══════════ -->
+  <section id="p-inicio" class="pantalla activa">
+    <div class="tarjeta tarjeta-centrada">
+      <h1>Capacitación sin capacitador</h1>
+      <p class="intro">
+        Vera dicta la inducción, ve la sala por la cámara, llama a cada persona por su
+        nombre, hace preguntas y al final entrega un acta de atención para el supervisor.
+        Nadie tiene que estar presente dictando la misma inducción una y otra vez.
+      </p>
+      <div id="inicio-resumen" class="resumen-contenido"></div>
+      <div class="botonera">
+        <button id="btn-comenzar" class="btn btn-primario">Iniciar capacitación</button>
+        <button id="btn-editar-contenido" class="btn btn-secundario">Editar contenido</button>
+      </div>
+      <p class="letra-menuda">
+        Vera es una inteligencia artificial y así se presenta ante el grupo.
+        La atención se estima por la postura de la cabeza y los ojos frente a la cámara:
+        es un indicio para el supervisor, no una medición absoluta.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════ PANTALLA: CONSENTIMIENTO ══════════ -->
+  <section id="p-consentimiento" class="pantalla">
+    <div class="tarjeta tarjeta-centrada">
+      <h2>Antes de encender la cámara</h2>
+      <div class="caja-legal">
+        <p><strong>Lo que la plataforma hace con la cámara:</strong> detecta cuántas personas hay,
+        estima si miran al frente o están distraídas, y asocia un nombre a cada rostro durante la sesión.</p>
+        <p><strong>Lo que NO hace:</strong> no graba video, no toma fotos, no envía imágenes a internet.
+        Todo el análisis ocurre dentro de este computador. Al cerrar la sesión solo queda el acta
+        (nombres, atención estimada y respuestas), guardada localmente.</p>
+        <p><strong>Ley 1581 de 2012 (habeas data):</strong> antes de empezar, los asistentes deben ser
+        informados de esto y autorizar el uso de la cámara. Léales este aviso o proyéctelo.</p>
+      </div>
+      <label class="fila-consentimiento">
+        <input type="checkbox" id="chk-consentimiento">
+        <span>Informé a los asistentes y autorizaron el uso de la cámara en esta sesión.</span>
+      </label>
+      <div class="botonera">
+        <button id="btn-modo-camara" class="btn btn-primario" disabled>Empezar con cámara (sala real)</button>
+        <button id="btn-modo-sim" class="btn btn-secundario" disabled>Modo demostración (sin cámara)</button>
+      </div>
+      <p class="letra-menuda">El modo demostración usa una sala simulada de cuatro personas: sirve para
+      mostrar la plataforma sin tener un grupo presente.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ PANTALLA: SALA DE CAPACITACIÓN ══════════ -->
+  <section id="p-sala" class="pantalla">
+    <div class="sala">
+
+      <!-- Columna izquierda: Vera -->
+      <div class="col-vera">
+        <div id="vera-contenedor" class="vera-marco"></div>
+        <div class="vera-placa">Vera · inteligencia artificial</div>
+        <div id="vera-estado" class="vera-estado"></div>
+        <div id="vera-subtitulo" class="vera-subtitulo"></div>
+        <button id="btn-saltar" class="btn btn-mini" title="Salta lo que Vera está diciendo">Saltar ⏭</button>
+      </div>
+
+      <!-- Columna central: contenido -->
+      <div class="col-contenido">
+        <div id="barra-fase" class="barra-fase"></div>
+        <div class="diapositiva">
+          <h2 id="diapositiva-titulo"></h2>
+          <ul id="diapositiva-puntos"></ul>
+        </div>
+
+        <!-- Zona para escribir el nombre cuando la voz no funciona -->
+        <div id="zona-nombre" class="zona-entrada oculto">
+          <label for="txt-nombre" id="nombre-para"></label>
+          <div class="fila-entrada">
+            <input type="text" id="txt-nombre" placeholder="Escriba el nombre aquí" autocomplete="off">
+            <button id="btn-guardar-nombre" class="btn btn-primario">Guardar</button>
+            <button id="btn-omitir-nombre" class="btn btn-mini">Ya no está / omitir</button>
+          </div>
+        </div>
+
+        <!-- Zona de respuesta a preguntas -->
+        <div id="zona-respuesta" class="zona-entrada oculto">
+          <div id="respuesta-para" class="respuesta-para"></div>
+          <div class="fila-entrada">
+            <input type="text" id="txt-respuesta" placeholder="O escribe la respuesta aquí" autocomplete="off">
+            <button id="btn-enviar-respuesta" class="btn btn-primario">Responder</button>
+          </div>
+          <div class="fila-entrada">
+            <button id="btn-responder-voz" class="btn btn-secundario">🎤 Responder por voz</button>
+            <button id="btn-sin-respuesta" class="btn btn-mini">No hubo respuesta</button>
+          </div>
+        </div>
+
+        <div class="botonera-sala">
+          <button id="btn-empezar-registro" class="btn btn-primario oculto">Ya estamos todos — empezar registro</button>
+          <button id="btn-cambiar-a-demo" class="btn btn-secundario oculto">Continuar en modo demostración</button>
+          <button id="btn-terminar" class="btn btn-mini" title="Corta la sesión y genera el acta con lo acumulado">Terminar y generar acta</button>
+        </div>
+      </div>
+
+      <!-- Columna derecha: la sala vista por Vera -->
+      <div class="col-video">
+        <div class="marco-video">
+          <video id="video-camara" playsinline muted class="oculto"></video>
+          <canvas id="lienzo-overlay" class="oculto"></canvas>
+          <canvas id="lienzo-sim" width="640" height="360" class="oculto"></canvas>
+        </div>
+        <div id="lista-personas" class="lista-personas"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════ PANTALLA: ACTA ══════════ -->
+  <section id="p-acta" class="pantalla">
+    <div class="tarjeta">
+      <h2 id="acta-titulo">Acta de la sesión</h2>
+      <div id="acta-datos" class="acta-datos"></div>
+      <table class="tabla-acta" id="tabla-acta">
+        <thead>
+          <tr>
+            <th>Asistente</th>
+            <th>Presencia</th>
+            <th>Atención estimada</th>
+            <th>Llamados</th>
+            <th>Respuestas</th>
+            <th>Observación</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="acta-nota" class="letra-menuda">
+        La atención se estima por postura de cabeza y apertura de ojos frente a la cámara.
+        Es un indicio, no una medición absoluta: las decisiones sobre el personal las toma
+        una persona, no la plataforma.
+      </p>
+      <div class="botonera solo-pantalla">
+        <button id="btn-whatsapp" class="btn btn-primario">Compartir por WhatsApp</button>
+        <button id="btn-imprimir" class="btn btn-secundario">Imprimir acta</button>
+        <button id="btn-copiar" class="btn btn-secundario">Copiar resumen</button>
+        <button id="btn-nueva-sesion" class="btn btn-mini">Nueva sesión</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════ EDITOR DE CONTENIDO ══════════ -->
+<div id="modal-editor" class="modal oculto">
+  <div class="modal-cuerpo">
+    <h2>Contenido de la capacitación</h2>
+    <p class="letra-menuda">
+      Formato: <code># Título del módulo</code> inicia un módulo, <code>- </code> es un punto que Vera lee,
+      y <code>? pregunta | palabras clave separadas por coma | respuesta modelo</code> es la pregunta del módulo.
+      La primera línea es el título de la capacitación.
+    </p>
+    <textarea id="txt-contenido" spellcheck="false"></textarea>
+    <div class="botonera">
+      <button id="btn-guardar-contenido" class="btn btn-primario">Guardar</button>
+      <button id="btn-restaurar-contenido" class="btn btn-secundario">Restaurar el de fábrica</button>
+      <button id="btn-cerrar-editor" class="btn btn-mini">Cerrar sin guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="contenido.js"></script>
+<script src="vera.js"></script>
+<script src="simulacion.js"></script>
+<script src="motor-atencion.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

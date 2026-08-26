@@ -1,0 +1,367 @@
+/* Vera — Capacitadora Virtual
+   Tema oscuro pensado para proyectarse en una sala: contraste alto,
+   letra grande, nada que compita con la cara de Vera. */
+
+:root {
+  --fondo: #0e1420;
+  --fondo-tarjeta: #17202f;
+  --fondo-suave: #1e2a3d;
+  --borde: #2b3a52;
+  --texto: #e8eef7;
+  --texto-suave: #9db0c9;
+  --acento: #35c4c8;        /* el color de Vera */
+  --acento-fuerte: #1fa8ac;
+  --ambar: #e8b93d;
+  --rojo: #e05d5d;
+  --verde: #4fc37f;
+  --radio: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Cabecera ─────────────────────────────────────────── */
+.cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--borde);
+}
+.marca {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--acento);
+}
+.marca span {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+  margin-left: 8px;
+}
+.cabecera-nota { font-size: 12px; color: var(--texto-suave); }
+
+/* ── Pantallas ────────────────────────────────────────── */
+.pantalla { display: none; padding: 24px; }
+.pantalla.activa { display: block; }
+.oculto { display: none !important; }
+
+.tarjeta {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 28px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.tarjeta-centrada { max-width: 680px; text-align: center; }
+
+h1 { font-size: 30px; margin-bottom: 12px; }
+h2 { font-size: 22px; margin-bottom: 10px; }
+.intro { color: var(--texto-suave); line-height: 1.55; margin-bottom: 18px; }
+
+.resumen-contenido {
+  background: var(--fondo-suave);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: var(--texto-suave);
+  text-align: left;
+}
+.resumen-contenido strong { color: var(--texto); }
+
+.letra-menuda { font-size: 12px; color: var(--texto-suave); line-height: 1.5; margin-top: 16px; }
+
+/* ── Botones ──────────────────────────────────────────── */
+.botonera { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primario { background: var(--acento); color: #06282a; }
+.btn-primario:not(:disabled):hover { background: var(--acento-fuerte); color: #eafcfc; }
+.btn-secundario { background: var(--fondo-suave); color: var(--texto); border: 1px solid var(--borde); }
+.btn-secundario:not(:disabled):hover { border-color: var(--acento); }
+.btn-mini {
+  background: transparent;
+  color: var(--texto-suave);
+  border: 1px solid var(--borde);
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.btn-mini:hover { color: var(--texto); }
+
+/* ── Consentimiento ───────────────────────────────────── */
+.caja-legal {
+  background: var(--fondo-suave);
+  border-left: 4px solid var(--acento);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--texto-suave);
+}
+.caja-legal p + p { margin-top: 10px; }
+.caja-legal strong { color: var(--texto); }
+.fila-consentimiento {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  margin: 18px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+.fila-consentimiento input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--acento); }
+
+/* ── Sala de capacitación ─────────────────────────────── */
+.sala {
+  display: grid;
+  grid-template-columns: 300px 1fr 380px;
+  gap: 20px;
+  max-width: 1500px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.col-vera { text-align: center; }
+.vera-marco {
+  background: radial-gradient(circle at 50% 35%, #223148, var(--fondo-tarjeta));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px;
+}
+.vera-marco svg { width: 100%; height: auto; display: block; animation: respirar 4s ease-in-out infinite; }
+@keyframes respirar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+.vera-placa {
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.vera-estado {
+  min-height: 20px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--acento);
+}
+.vera-subtitulo {
+  min-height: 72px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+}
+#btn-saltar { margin-top: 10px; }
+
+.col-contenido { min-height: 480px; display: flex; flex-direction: column; gap: 14px; }
+.barra-fase {
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.diapositiva {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 26px 30px;
+  flex: 1;
+}
+.diapositiva h2 { color: var(--acento); margin-bottom: 18px; }
+.diapositiva ul { list-style: none; }
+.diapositiva li {
+  padding: 10px 0 10px 26px;
+  position: relative;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+  transition: color 0.3s;
+}
+.diapositiva li::before {
+  content: "•";
+  position: absolute;
+  left: 6px;
+  color: var(--borde);
+}
+.diapositiva li.actual { color: var(--texto); }
+.diapositiva li.actual::before { content: "▸"; color: var(--acento); }
+
+.zona-entrada {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--acento);
+  border-radius: var(--radio);
+  padding: 16px;
+}
+.zona-entrada label, .respuesta-para { display: block; font-size: 14px; margin-bottom: 10px; color: var(--texto-suave); }
+.fila-entrada { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.fila-entrada input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--texto);
+  font-size: 15px;
+  font-family: inherit;
+}
+.fila-entrada input:focus { outline: none; border-color: var(--acento); }
+.botonera-sala { display: flex; justify-content: center; }
+
+/* ── Video / simulación ───────────────────────────────── */
+.marco-video {
+  position: relative;
+  background: #000;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+#video-camara {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* espejo: la gente se ubica más fácil */
+}
+#lienzo-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#lienzo-sim { width: 100%; height: 100%; display: block; }
+
+.lista-personas { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.chip-persona {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.chip-persona .punto {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--texto-suave);
+  flex-shrink: 0;
+}
+.chip-persona.atento .punto { background: var(--verde); }
+.chip-persona.distraido .punto { background: var(--ambar); }
+.chip-persona.ojos-cerrados .punto { background: var(--ambar); }
+.chip-persona.ausente .punto { background: var(--rojo); }
+.chip-persona .nombre { font-weight: 600; min-width: 90px; }
+.chip-persona .barra {
+  flex: 1;
+  height: 6px;
+  background: var(--fondo-suave);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.chip-persona .barra i {
+  display: block;
+  height: 100%;
+  background: var(--verde);
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+.chip-persona .llamados { font-size: 12px; color: var(--ambar); flex-shrink: 0; }
+
+/* ── Acta ─────────────────────────────────────────────── */
+.acta-datos { color: var(--texto-suave); font-size: 14px; margin-bottom: 16px; }
+.tabla-acta { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla-acta th, .tabla-acta td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--borde);
+}
+.tabla-acta th { color: var(--texto-suave); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.tabla-acta .alerta { color: var(--rojo); font-weight: 600; }
+.tabla-acta .bien { color: var(--verde); }
+
+/* ── Modal editor ─────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 18, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal-cuerpo {
+  background: var(--fondo-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 24px;
+  width: min(860px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-cuerpo textarea {
+  flex: 1;
+  min-height: 340px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto);
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  resize: vertical;
+}
+.modal-cuerpo code {
+  background: var(--fondo-suave);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* ── Pantallas angostas ───────────────────────────────── */
+@media (max-width: 1100px) {
+  .sala { grid-template-columns: 1fr; }
+  .col-vera { max-width: 340px; margin: 0 auto; }
+}
+
+/* ── Impresión: solo el acta, en blanco ───────────────── */
+@media print {
+  body { background: #fff; color: #000; }
+  .cabecera, .solo-pantalla, #btn-saltar { display: none !important; }
+  .pantalla { display: none !important; }
+  #p-acta { display: block !important; padding: 0; }
+  .tarjeta { border: none; background: #fff; }
+  .acta-datos, .letra-menuda { color: #444; }
+  .tabla-acta th, .tabla-acta td { border-bottom: 1px solid #999; color: #000; }
+  .tabla-acta .alerta { color: #000; font-weight: 700; }
+}
