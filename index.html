@@ -66,8 +66,20 @@
         informados de esto y autorizar el uso de la cámara y el micrófono. Léales este aviso o proyéctelo.</p>
       </div>
       <div class="prueba-mic">
+        <button id="btn-probar-voz" class="btn btn-secundario">🔊 Probar la voz de Vera</button>
+        <span id="resultado-voz" class="resultado-mic"></span>
+      </div>
+      <div class="prueba-mic">
         <button id="btn-probar-mic" class="btn btn-secundario">🎤 Probar el micrófono</button>
         <span id="resultado-mic" class="resultado-mic"></span>
+      </div>
+      <div class="prueba-mic">
+        <label for="sel-velocidad" style="font-size:13px;color:var(--texto-suave)">Velocidad de Vera:</label>
+        <select id="sel-velocidad" style="background:var(--fondo-suave);border:1px solid var(--borde);border-radius:8px;color:var(--texto);font-family:inherit;padding:6px 10px">
+          <option value="0.85">Lenta</option>
+          <option value="1" selected>Normal</option>
+          <option value="1.15">Rápida</option>
+        </select>
       </div>
       <div class="datos-sesion">
         <label for="txt-grupo">Grupo o sede <span>(opcional, aparece en el acta y las constancias)</span></label>
@@ -83,6 +95,9 @@
       </div>
       <p class="letra-menuda">El modo demostración usa una sala simulada de cuatro personas: sirve para
       mostrar la plataforma sin tener un grupo presente.</p>
+      <div class="botonera">
+        <button id="btn-volver-inicio" class="btn btn-mini">← Volver al inicio</button>
+      </div>
     </div>
   </section>
 
@@ -97,6 +112,7 @@
         <div id="vera-estado" class="vera-estado"></div>
         <div id="vera-subtitulo" class="vera-subtitulo"></div>
         <button id="btn-saltar" class="btn btn-mini" title="Salta lo que Vera está diciendo">Saltar ⏭</button>
+        <button id="btn-tablero" class="btn btn-mini" title="Oculta el video y la atención de cada persona: úsalo si proyectas la pantalla en la sala">🙈 Ocultar tablero</button>
       </div>
 
       <!-- Columna central: contenido -->
@@ -156,6 +172,13 @@
   <section id="p-acta" class="pantalla">
     <div class="tarjeta">
       <h2 id="acta-titulo">Acta de la sesión</h2>
+      <div id="aviso-acta" class="aviso-rescate oculto">
+        <span>⚠ El acta <b>no se pudo guardar</b> en este navegador (almacenamiento lleno o bloqueado).
+          Descárguela ahora o quedará solo en esta pantalla.</span>
+        <span class="registro-acciones">
+          <button id="btn-descargar-acta" class="btn btn-mini">Descargar el acta</button>
+        </span>
+      </div>
       <div id="acta-datos" class="acta-datos"></div>
       <table class="tabla-acta" id="tabla-acta">
         <thead>

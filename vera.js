@@ -139,7 +139,7 @@
       var voz = elegirVoz();
       if (voz) u.voice = voz;
       u.lang = voz ? voz.lang : 'es-CO';
-      u.rate = 1.0;
+      u.rate = window.Vera && window.Vera.velocidad ? window.Vera.velocidad : 1.0;
       u.pitch = 1.05;
       var listo = false;
       var terminar = function () {
@@ -370,6 +370,35 @@
       if (id) id.setAttribute('cx', String(122 + desplazamiento));
     },
 
-    get modoRapido() { return MODO_RAPIDO; }
+    get modoRapido() { return MODO_RAPIDO; },
+
+    /* Diagnóstico de la voz, para probarla ANTES de tener el grupo sentado.
+       Los dos fallos que tumban un demo: que el equipo no tenga voz en español
+       (Vera leería español con acento inglés) o que no haya síntesis de voz
+       (Vera quedaría muda, con subtítulos, sin avisar). */
+    revisarVoz: function () {
+      if (MODO_RAPIDO) {
+        return { estado: 'aviso', mensaje: 'El modo rápido (?rapido=1) no reproduce audio.' };
+      }
+      if (!window.speechSynthesis) {
+        return { estado: 'mal', mensaje: 'Este navegador no puede hablar: Vera saldría muda, solo con subtítulos. Use Chrome o Edge.' };
+      }
+      var voces = speechSynthesis.getVoices();
+      if (!voces.length) {
+        return { estado: 'aviso', mensaje: 'El navegador todavía no cargó las voces. Espere un momento y vuelva a probar.' };
+      }
+      var voz = elegirVoz();
+      if (!voz) {
+        return { estado: 'mal', mensaje: 'No hay ninguna voz en español instalada: Vera leería el español con acento inglés. ' +
+          'Instale la voz en español de Windows (Configuración › Hora e idioma › Voz), o abra la app en Edge.' };
+      }
+      return {
+        estado: 'bien',
+        voz: voz.name,
+        mensaje: 'Voz lista: ' + voz.name + ' (' + voz.lang + ').'
+      };
+    },
+
+    velocidad: 1
   };
 })();

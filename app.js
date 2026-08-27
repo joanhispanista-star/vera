@@ -59,9 +59,12 @@
       return;
     }
     $('btn-comenzar').disabled = false;
+    var minutos = window.ContenidoLib.estimarMinutos(contenido, 0);
     $('inicio-resumen').innerHTML =
       'Contenido cargado: <strong>' + contenido.titulo + '</strong> — ' +
-      contenido.modulos.length + ' módulos, ' + preguntas + ' preguntas.';
+      contenido.modulos.length + ' módulos, ' + preguntas + ' preguntas.<br>' +
+      'Duración estimada: <strong>~' + minutos + ' minutos</strong>, más unos 15 segundos por asistente ' +
+      'para el registro de nombres.';
   }
 
   // ── Frases de Vera ──────────────────────────────────────
@@ -105,6 +108,16 @@
 
   // ── Sesión ──────────────────────────────────────────────
   function iniciarSesion(elegido) {
+    // Si quedó un rescate sin resolver, se archiva ANTES de empezar: a los 15 s
+    // de la sesión nueva el borrador se sobrescribiría y esa evidencia se
+    // perdería en silencio, que es justo lo que el rescate existe para evitar.
+    var pendiente = window.Historial.leerBorrador();
+    if (pendiente) {
+      pendiente.id = 's' + Date.now();
+      pendiente.rescatada = true;
+      if (window.Historial.guardar(pendiente)) window.Historial.borrarBorrador();
+      $('aviso-rescate').classList.add('oculto');
+    }
     modo = elegido;
     grupoSesion = $('txt-grupo').value.trim();
     ir('p-sala');
@@ -133,6 +146,9 @@
         if (!yaEnCola) colaAlertas.push({ p: p, motivo: motivo });
       };
       window.Motor.alLlegarTarde = function (p) {
+        // Queda registrado el momento: sin esto su acta y su constancia
+        // afirmarían presencia completa en una sesión a la que llegó al final.
+        p.llegoTardeMs = Date.now() - (inicioSesion || Date.now());
         if (fase === 'modulo' || fase === 'pregunta') colaLlegadas.push(p);
       };
       arrancarChips();
@@ -259,7 +275,7 @@
     if (colaLlegadas.length) {
       var quien = colaLlegadas.shift();
       return window.Vera.decir(
-        'Veo que alguien más se nos unió. Bienvenido: en un momento el supervisor registra tu nombre. Sigamos.'
+        'Veo que alguien más se nos unió. Bienvenida o bienvenido: en un momento el supervisor registra tu nombre. Sigamos.'
       ).then(function () {
         $('barra-fase').textContent = 'Llegó alguien: toca su ficha (' + quien.nombre + ') para ponerle el nombre.';
         return procesarAlertas();
@@ -295,22 +311,40 @@
       pausada = true;
       pausaDesde = Date.now();
       window.Vera.callar();
-      window.Motor.alertasActivas = false; // en el descanso nadie está "distraído"
+      window.Vera.detenerEscucha();
+      window.Motor.pausar(); // apaga la cámara y congela toda medición
       colaAlertas.length = 0;
+      colaLlegadas.length = 0;
       $('btn-pausar').textContent = '▶ Continuar';
-      $('barra-fase').textContent = 'En pausa — la capacitación está detenida. El acta se conserva.';
+      $('barra-fase').textContent = modo === 'camara'
+        ? 'En descanso — la cámara está apagada y no se está midiendo nada. El acta se conserva.'
+        : 'En descanso — la capacitación está detenida. El acta se conserva.';
       return;
     }
-    pausada = false;
-    msPausados += Date.now() - pausaDesde;
-    $('btn-pausar').textContent = '⏸ Pausar';
-    // Borrón al volver: nadie carga con la distracción del descanso.
-    window.Motor.presentes().forEach(function (p) {
-      p.ema = Math.max(p.ema, 0.9);
-      p.bocaHistoria = [];
-      p.hablandoDesdeMs = 0;
+    $('btn-pausar').disabled = true;
+    window.Motor.reanudar().then(function (r) {
+      $('btn-pausar').disabled = false;
+      if (!r.ok) {
+        // La cámara no volvió: se dice y se deja seguir en pausa, en vez de
+        // continuar a ciegas fingiendo que se está midiendo.
+        window.Motor.enPausa = true;
+        $('barra-fase').textContent = 'No se pudo volver a encender la cámara: ' + r.error;
+        return;
+      }
+      pausada = false;
+      msPausados += Date.now() - pausaDesde;
+      $('btn-pausar').textContent = '⏸ Pausar';
+      // Borrón al volver: nadie carga con la distracción del descanso.
+      window.Motor.presentes().forEach(function (p) {
+        p.ema = Math.max(p.ema, 0.9);
+        p.bocaHistoria = [];
+        p.hablandoDesdeMs = 0;
+      });
+      // Pausar apagó la vigilancia; si volvemos a mitad de un módulo hay que
+      // reencenderla, o Vera se queda muda ante las distracciones que siguen.
+      if (fase === 'modulo') window.Motor.alertasActivas = true;
+      if (resolverPausa) { var res = resolverPausa; resolverPausa = null; res(); }
     });
-    if (resolverPausa) { var r = resolverPausa; resolverPausa = null; r(); }
   }
 
   /* Dice un punto del temario respetando la pausa: si el descanso cae a mitad
@@ -382,9 +416,12 @@
      empresa necesita demostrar. Aquí cada quien responde al menos una vez,
      repartiendo las preguntas del curso. */
   function rondaFinal() {
-    var conPregunta = contenido.modulos
-      .map(function (m, i) { return { m: m, i: i }; })
-      .filter(function (x) { return x.m.pregunta; });
+    // Todas las preguntas de todos los módulos, para repartirlas sin repetir
+    // mientras alcancen (un módulo puede tener varias).
+    var conPregunta = [];
+    contenido.modulos.forEach(function (m, i) {
+      (m.preguntas || []).forEach(function (q) { conPregunta.push({ m: m, i: i, q: q }); });
+    });
     if (!conPregunta.length) return Promise.resolve();
 
     var pendientes = window.Motor.presentes().filter(function (p) { return !p.respuestas.length; });
@@ -401,7 +438,7 @@
       cadena = cadena.then(function () {
         if (terminada) return;
         var x = conPregunta[idx % conPregunta.length];
-        return hacerPregunta(x.m, x.i, p, 'Ronda final · ' + (idx + 1) + ' de ' + pendientes.length);
+        return hacerPregunta(x.m, x.i, p, 'Ronda final · ' + (idx + 1) + ' de ' + pendientes.length, x.q);
       });
     });
 
@@ -463,19 +500,28 @@
     });
   }
 
-  function hacerPregunta(m, idxModulo, aQuien, rotulo) {
+  function hacerPregunta(m, idxModulo, aQuien, rotulo, cual) {
     if (terminada) return Promise.resolve();
     fase = 'pregunta';
+    var q = cual || m.pregunta;
+    if (!q) return Promise.resolve();
     var p = aQuien || elegirInterrogado();
     if (!p) return Promise.resolve();
     p.yaPreguntado = true;
     window.Vera.mirar(p.x);
     $('barra-fase').textContent = rotulo || ('Pregunta del módulo ' + (idxModulo + 1));
 
-    return window.Vera.decir(p.nombre + ', pregunta para ti: ' + m.pregunta.texto)
+    // El descanso también vale en medio de una pregunta: sin esta espera, la
+    // sesión seguía corriendo sola durante la pausa y podía llegar al acta.
+    return esperarSiPausada()
       .then(function () {
+        if (terminada) return null;
+        return window.Vera.decir(p.nombre + ', pregunta para ti: ' + q.texto);
+      })
+      .then(function () {
+        if (terminada) return null;
         if (modo === 'simulacion') {
-          var r = window.Simulacion.responder(idxModulo, p, m.pregunta);
+          var r = window.Simulacion.responder(idxModulo, p, q);
           window.Simulacion.hablar(p, 1800);
           $('barra-fase').textContent = p.nombre + ' responde: “' + r.texto + '”';
           return pausa(window.Vera.modoRapido ? 500 : r.tardanzaMs).then(function () { return r.texto; });
@@ -483,9 +529,13 @@
         return pedirRespuestaEnVivo(p);
       })
       .then(function (texto) {
-        var veredicto = evaluarRespuesta(texto, m.pregunta.claves);
+        // Si el supervisor cortó la sesión mientras se esperaba la respuesta,
+        // el acta ya se guardó: añadirle una respuesta aquí crearía un acta en
+        // pantalla distinta de la archivada.
+        if (terminada) return null;
+        var veredicto = evaluarRespuesta(texto, q.claves);
         p.respuestas.push({ modulo: m.titulo, veredicto: veredicto, texto: texto || '' });
-        var modelo = m.pregunta.respuestaModelo;
+        var modelo = q.respuestaModelo;
         var reaccion;
         if (veredicto === 'correcta') {
           reaccion = '¡Muy bien, ' + p.nombre + '! Exacto: ' + modelo;
@@ -500,7 +550,7 @@
       })
       .then(function () {
         window.Vera.mirar(null);
-        fase = 'modulo';
+        if (!terminada) fase = 'modulo';
       });
   }
 
@@ -518,7 +568,11 @@
         var n = window.Motor.presentes().length;
         $('barra-fase').textContent = n === 0
           ? 'No veo a nadie todavía. Ubíquense frente a la cámara.'
-          : 'Veo ' + n + (n === 1 ? ' persona' : ' personas') + ' en la sala.';
+          : 'Veo ' + n + (n === 1 ? ' persona' : ' personas') + ' en la sala.' +
+            (window.Motor.salaLlena
+              ? ' ⚠ Es el máximo que alcanzo a seguir a la vez (' + window.Motor.tope +
+                '): si hay más gente, no quedará en el acta.'
+              : '');
         $('btn-empezar-registro').disabled = n === 0;
       }
       var html = personas.map(function (p, i) {
@@ -549,7 +603,13 @@
     $('zona-nombre').classList.add('oculto');
     $('zona-respuesta').classList.add('oculto');
     clearInterval(tickerChips);
-    var personas = window.Motor.personas();
+    // Caras detectadas que nunca recibieron nombre (alguien que pasó por
+    // detrás, un reflejo, un afiche) no son asistentes: no van al acta ni
+    // pueden recibir constancia. Si NADIE se registró, se conservan todas
+    // para no entregar un acta vacía sin explicación.
+    var todas = window.Motor.personas();
+    var conNombre = todas.filter(function (p) { return p.nombre; });
+    var personas = conNombre.length ? conNombre : todas;
     window.Motor.detener();
     window.Vera.callar();
     window.Vera.detenerEscucha(); // que el micrófono no siga abierto en el acta
@@ -558,6 +618,18 @@
     if (pausada) msPausados += Date.now() - pausaDesde; // se terminó estando en pausa
     $('btn-pausar').classList.add('oculto');
     var duracionMin = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados) / 60000));
+    // Una sesión cortada antes de que llegara alguien no es evidencia de nada
+    // y solo ensuciaría el historial con filas vacías.
+    if (!personas.length) {
+      $('acta-titulo').textContent = 'Sesión sin asistentes';
+      $('acta-datos').textContent = 'La sesión se cerró antes de registrar a alguien: no se guardó nada en el historial.';
+      $('tabla-acta').querySelector('tbody').innerHTML = '';
+      $('acta-nota').textContent = '';
+      actaEnPantalla = null;
+      window.Historial.borrarBorrador();
+      ir('p-acta');
+      return;
+    }
     guardarActa(personas, duracionMin);
     pintarActa(sesionGuardada);
     ir('p-acta');
@@ -571,6 +643,9 @@
     actaEnPantalla = acta;
     var fecha = new Date(acta.fecha);
     $('acta-titulo').textContent = 'Acta — ' + acta.titulo;
+    // La marca de rescatada viaja en el acta: se ve igual el día que se
+    // rescató y cualquier día que se reabra desde el historial.
+    if (acta.rescatada) aviso = 'ACTA RESCATADA — la sesión se interrumpió' + (aviso ? ' · ' + aviso : '');
     $('acta-datos').textContent = (aviso ? aviso + ' · ' : '') +
       (isNaN(fecha.getTime()) ? '' :
         fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) +
@@ -581,13 +656,7 @@
 
     var filas = acta.personas.map(function (p) {
       var atencion = typeof p.atencion === 'number' ? p.atencion + '%' : '—';
-      // Si Vera anunció "queda anotado", el acta no puede decir "completa";
-      // el umbral de 8 s evita acusar por una simple pérdida de rastreo
-      // (alguien que se agacha o voltea del todo por un par de segundos).
-      var ausente = p.ausenteMs || 0;
-      var presencia = ausente > 45000 ? 'se ausentó ~' + Math.max(1, Math.round(ausente / 60000)) + ' min'
-                    : ausente > 8000 ? 'se ausentó un momento'
-                    : 'completa';
+      var presencia = window.Historial.textoPresencia(p);
       var marcas = (p.respuestas || []).map(function (r) {
         if (r.veredicto === 'correcta') return '✔';
         if (r.veredicto === 'incorrecta') return '✘';
@@ -683,6 +752,7 @@
           llamados: p.llamados,
           conversaMs: p.hablandoAcumMs || 0,
           ausenteMs: p.ausenteAcumMs || 0,
+          llegoTardeMs: p.llegoTardeMs || 0,
           // Se guardan para que un acta reabierta diga exactamente lo mismo
           // que dijo el día que se generó, sin recalcular con datos que ya no existen.
           cerroAtenta: !!(p.presente && p.ema > 0.7),
@@ -697,14 +767,26 @@
     if (fase !== 'modulo' && fase !== 'pregunta') return;
     var personas = window.Motor.personas().filter(function (p) { return p.nombre; });
     if (!personas.length) return;
-    var minutos = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados) / 60000));
-    window.Historial.guardarBorrador(instantanea(personas, minutos));
+    // Si estamos EN pausa, el descanso corrido todavía no está en msPausados:
+    // sin sumarlo, el acta rescatada cobraría el café como capacitación.
+    var pausaCorrida = pausada ? (Date.now() - pausaDesde) : 0;
+    var minutos = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados - pausaCorrida) / 60000));
+    var borrador = instantanea(personas, minutos);
+    borrador.rescatada = true; // si se recupera, el acta nace marcada
+    window.Historial.guardarBorrador(borrador);
   }
 
   function guardarActa(personas, duracionMin) {
     sesionGuardada = instantanea(personas, duracionMin);
-    window.Historial.guardar(sesionGuardada);
-    window.Historial.borrarBorrador(); // la sesión llegó a su acta: ya no hay qué rescatar
+    // Si el almacenamiento está lleno, el acta se perdería EN SILENCIO — y la
+    // promesa del producto es que al final queda la evidencia. Se avisa y se
+    // ofrece descargarla; y el borrador NO se borra, que es el otro salvavidas.
+    if (window.Historial.guardar(sesionGuardada)) {
+      window.Historial.borrarBorrador();
+      $('aviso-acta').classList.add('oculto');
+    } else {
+      $('aviso-acta').classList.remove('oculto');
+    }
   }
 
   // ── Constancias ─────────────────────────────────────────
@@ -727,13 +809,20 @@
       { valor: constanciaSesion.duracionMin + ' min', rotulo: 'Duración' },
       { valor: (typeof p.atencion === 'number' ? p.atencion + '%' : '—'), rotulo: 'Atención estimada' }
     ];
+    // "Acertadas" solo sobre las preguntas que de verdad se pudieron calificar.
     if (ac.total) datos.push({ valor: ac.bien + ' de ' + ac.total, rotulo: 'Preguntas acertadas' });
+    if (ac.sinCalificar) datos.push({ valor: String(ac.sinCalificar), rotulo: 'Respondidas sin calificar' });
 
     var fecha = new Date(constanciaSesion.fecha);
     var fechaTexto = isNaN(fecha.getTime()) ? '' :
       fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 
     $('constancia').innerHTML =
+      // Una constancia de demostración tiene que gritarlo, no susurrarlo en el
+      // pie: impresa y suelta, se confundiría con una real.
+      (esDemo ? '<div class="c-sello-demo">DEMOSTRACIÓN · SIN VALIDEZ</div>' : '') +
+      (constanciaSesion.rescatada
+        ? '<div class="c-sello-demo c-sello-aviso">SESIÓN INTERRUMPIDA · ACTA RESCATADA</div>' : '') +
       '<div class="c-marca">VERA · CAPACITADORA VIRTUAL</div>' +
       '<h1>Constancia de capacitación</h1>' +
       '<div class="c-linea"></div>' +
@@ -743,6 +832,11 @@
       '<div class="c-curso">“' + escaparHtml(constanciaSesion.titulo) + '”' + '</div>' +
       '<div class="c-texto">dictada el ' + fechaTexto +
         (constanciaSesion.grupo ? ' · ' + escaparHtml(constanciaSesion.grupo) : '') + '</div>' +
+      // No se puede certificar una sesión entera a quien entró a la mitad.
+      (p.llegoTardeMs > 60000
+        ? '<div class="c-texto"><b>Se incorporó ~' + Math.round(p.llegoTardeMs / 60000) +
+          ' min después de iniciada la sesión.</b></div>'
+        : '') +
       '<div class="c-datos">' + datos.map(function (d) {
         return '<div class="c-dato"><div class="valor">' + d.valor + '</div>' +
                '<div class="rotulo">' + d.rotulo + '</div></div>';
@@ -790,12 +884,16 @@
       var acta = window.Historial.leerBorrador();
       if (!acta) return;
       acta.id = 's' + Date.now(); // id propio: es un acta nueva en el historial
-      window.Historial.guardar(acta);
+      acta.rescatada = true;      // la marca viaja con el acta, no solo en pantalla
+      if (!window.Historial.guardar(acta)) {
+        $('rescate-texto').textContent = 'No se pudo guardar el acta rescatada: el almacenamiento está lleno.';
+        return;
+      }
       window.Historial.borrarBorrador();
       $('aviso-rescate').classList.add('oculto');
       sesionGuardada = acta;
       fase = 'acta';
-      pintarActa(acta, 'ACTA RESCATADA — la sesión se interrumpió');
+      pintarActa(acta);
       ir('p-acta');
     });
     $('btn-descartar-rescate').addEventListener('click', function () {
@@ -833,8 +931,12 @@
               (p.llamados ? ' · ' + p.llamados + ' llamados' : '') + '</span>' +
           '</div>' +
           '<div class="registro-lista">' + p.sesiones.map(function (s) {
+            var sesionCompleta = window.Historial.buscarSesion(s.id);
+            var etiqueta = sesionCompleta && sesionCompleta.modo !== 'camara'
+              ? ' <span class="etiqueta-demo">demostración</span>' : '';
             return '<div class="registro-linea">' +
-              '<span><b>' + escaparHtml(s.titulo) + '</b> — ' + window.Historial.fechaLegible(s.fecha) + '</span>' +
+              '<span><b>' + escaparHtml(s.titulo) + '</b>' + etiqueta +
+              ' — ' + window.Historial.fechaLegible(s.fecha) + '</span>' +
               '<span class="registro-acciones">' +
                 '<button class="btn btn-mini" data-constancia="' + escaparHtml(s.id) + '" data-persona="' + escaparHtml(s.persona.nombre) + '">Constancia</button>' +
               '</span></div>';
@@ -905,8 +1007,36 @@
       $('btn-modo-camara').disabled = !ev.target.checked;
       $('btn-modo-sim').disabled = !ev.target.checked;
     });
+    $('btn-volver-inicio').addEventListener('click', function () { ir('p-inicio'); });
     $('btn-modo-camara').addEventListener('click', function () { iniciarSesion('camara'); });
     $('btn-modo-sim').addEventListener('click', function () { iniciarSesion('simulacion'); });
+
+    /* Probar la voz antes de tener el grupo sentado. Es la falla que tumba un
+       demo delante del cliente: sin voz en español Vera lee con acento inglés,
+       y sin síntesis queda muda con subtítulos — hoy, sin avisar. */
+    $('btn-probar-voz').addEventListener('click', function () {
+      var res = $('resultado-voz');
+      var d = window.Vera.revisarVoz();
+      res.textContent = d.mensaje;
+      res.style.color = d.estado === 'mal' ? 'var(--rojo)'
+                      : d.estado === 'bien' ? 'var(--verde)' : 'var(--ambar)';
+      if (d.estado === 'bien') {
+        window.Vera.decir('Hola, soy Vera. Si me escuchan bien al fondo de la sala, ya podemos empezar.');
+      }
+    });
+
+    var velocidadGuardada = null;
+    try { velocidadGuardada = localStorage.getItem('vera.velocidad'); } catch (e) {}
+    if (velocidadGuardada) {
+      window.Vera.velocidad = parseFloat(velocidadGuardada);
+      $('sel-velocidad').value = velocidadGuardada;
+    }
+    $('sel-velocidad').addEventListener('change', function (ev) {
+      window.Vera.velocidad = parseFloat(ev.target.value);
+      try { localStorage.setItem('vera.velocidad', ev.target.value); } catch (e) {}
+      window.Vera.callar();
+      window.Vera.decir('Esta es mi velocidad de voz.');
+    });
 
     // La prueba del micrófono ANTES de empezar: la primera sesión real de Joan
     // se quedó sin voz y nadie le dijo por qué. Aquí se ve el nivel en vivo y,
@@ -939,6 +1069,14 @@
 
     $('btn-saltar').addEventListener('click', function () { window.Vera.callar(); });
     $('btn-pausar').addEventListener('click', alternarPausa);
+
+    // Proyectar la pantalla en la sala no puede significar exhibir el
+    // porcentaje de atención de cada quien delante de sus compañeros.
+    $('btn-tablero').addEventListener('click', function () {
+      var sala = document.querySelector('.sala');
+      var oculto = sala.classList.toggle('sin-tablero');
+      $('btn-tablero').textContent = oculto ? '👁 Mostrar tablero' : '🙈 Ocultar tablero';
+    });
 
     // Cortar la sesión y entregar el acta con lo acumulado: en una empresa
     // real las capacitaciones se interrumpen, y perder lo medido no es opción.
@@ -1034,6 +1172,9 @@
 
     // Acta
     $('btn-imprimir').addEventListener('click', function () { window.print(); });
+    $('btn-descargar-acta').addEventListener('click', function () {
+      if (actaEnPantalla) window.Historial.descargarActa(actaEnPantalla);
+    });
     $('btn-copiar').addEventListener('click', function () {
       var texto = resumenTexto();
       var confirmar = function () {
@@ -1156,8 +1297,8 @@
       lector.onload = function () {
         var r = window.Historial.importarRespaldo(String(lector.result));
         alert(r.ok
-          ? 'Respaldo restaurado: ' + r.nuevas + ' sesiones nuevas' +
-            (r.repetidas ? ' (' + r.repetidas + ' ya estaban)' : '') + '.'
+          ? 'Respaldo restaurado: ' + r.nuevas + (r.nuevas === 1 ? ' sesión nueva' : ' sesiones nuevas') +
+            (r.repetidas ? ' (' + r.repetidas + (r.repetidas === 1 ? ' ya estaba' : ' ya estaban') + ')' : '') + '.'
           : r.error);
         pintarHistorial();
       };
@@ -1191,10 +1332,12 @@
       $('modal-editor').classList.add('oculto');
     });
     $('btn-exportar-cursos').addEventListener('click', function () {
-      // Se guarda lo que está en el editor, no lo que hay en memoria: si el
-      // usuario acaba de escribir y exporta sin guardar, se llevaría lo viejo.
-      window.ContenidoLib.guardarTexto($('txt-contenido').value);
-      var blob = new Blob([window.ContenidoLib.exportar()], { type: 'application/json;charset=utf-8' });
+      // Exportar NO guarda: sería un "Guardar" encubierto que dejaría sin
+      // efecto a "Cerrar sin guardar". Lo que está en el editor se incluye en
+      // el archivo, pero no se escribe en el almacenamiento.
+      var paquete = JSON.parse(window.ContenidoLib.exportar());
+      paquete.cursos[window.ContenidoLib.claveActiva()] = $('txt-contenido').value;
+      var blob = new Blob([JSON.stringify(paquete, null, 1)], { type: 'application/json;charset=utf-8' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
@@ -1214,7 +1357,7 @@
         if (r.ok) {
           $('txt-contenido').value = window.ContenidoLib.obtenerTexto();
           pintarResumen();
-          alert('Se importaron ' + r.cambiados + ' cursos.');
+          alert(r.cambiados === 1 ? 'Se importó 1 curso.' : 'Se importaron ' + r.cambiados + ' cursos.');
         } else {
           alert(r.error);
         }

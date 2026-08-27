@@ -22,6 +22,7 @@
   var ALERTA_EMA = 0.45;
   var ENFRIAMIENTO_ALERTA_MS = 45000;
   var ALFA_EMA = 0.08; // a 10 muestras/s, la media reacciona en ~1-2 segundos
+  var TOPE_CARAS = 16; // el detector no mira más caras que estas por frame
 
   var modo = null;            // 'camara' | 'simulacion'
   var personas = [];
@@ -32,9 +33,11 @@
   var overlay = null;
   var ctxOverlay = null;
   var ultimaDeteccion = [];   // caras crudas del último frame, para el registro
+  var restriccionesVideo = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' };
 
   window.Motor = {
     alertasActivas: false,    // la app la enciende solo mientras se dicta un módulo
+    enPausa: false,           // descanso: no se mide ni se acumula nada
     bloquearNuevas: false,    // tras el registro, una cara nueva es "Invitado"
     alAlerta: null,           // callback(persona, motivo)
     alLlegarTarde: null,      // callback(persona) cuando entra alguien con la sesión empezada
@@ -44,6 +47,10 @@
     presentes: function () {
       return personas.filter(function (p) { return p.presente; });
     },
+    // La sala podría tener más gente de la que el detector alcanza a mirar:
+    // la app lo advierte en vez de callarlo, que sería prometer de más.
+    get tope() { return TOPE_CARAS; },
+    get salaLlena() { return modo === 'camara' && ultimaDeteccion.length >= TOPE_CARAS; },
 
     iniciarSimulacion: function (canvasSim) {
       modo = 'simulacion';
@@ -71,7 +78,6 @@
       // Cámara y micrófono se piden JUNTOS: un solo aviso del navegador, y el
       // reconocimiento de voz ya no vuelve a preguntar a mitad del registro.
       // El audio se apaga de inmediato: solo se quería el permiso.
-      var restriccionesVideo = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' };
       return navigator.mediaDevices.getUserMedia({ video: restriccionesVideo, audio: true })
         .catch(function (err) {
           // Equipos sin micrófono tumban la petición combinada: se reintenta solo video.
@@ -117,6 +123,37 @@
 
     marcador: function (id) {
       if (modo === 'simulacion') window.Simulacion.marcador(id);
+    },
+
+    /* Descanso: la cámara se APAGA de verdad (se detienen los tracks, y la
+       luz del equipo se apaga con ellos). Ocultar el video no bastaría: lo que
+       se le promete a la sala es que en el descanso nadie los está viendo. */
+    pausar: function () {
+      window.Motor.enPausa = true;
+      window.Motor.alertasActivas = false;
+      if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(function (t) { t.stop(); });
+        video.srcObject = null;
+      }
+      if (ctxOverlay) ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
+    },
+
+    /* Vuelve del descanso SIN recrear a las personas: se conservan nombres,
+       atención acumulada y respuestas. El emparejamiento por cercanía vuelve a
+       adoptar a cada quien, igual que cuando alguien regresa del baño. */
+    reanudar: function () {
+      window.Motor.enPausa = false;
+      if (modo !== 'camara') return Promise.resolve({ ok: true });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return Promise.resolve({ ok: false, error: 'La cámara ya no está disponible en este navegador.' });
+      }
+      return navigator.mediaDevices.getUserMedia({ video: restriccionesVideo, audio: false })
+        .then(function (flujo) {
+          video.srcObject = flujo;
+          return video.play();
+        })
+        .then(function () { return { ok: true }; })
+        .catch(function (err) { return { ok: false, error: mensajeDeError(err) }; });
     },
 
     detener: detenerTodo
@@ -166,6 +203,9 @@
   }
 
   function pasoComun(ahora, dt) {
+    // En el descanso no se mide nada: la sala se vacía, y sin esto el acta
+    // acusaría a TODO el grupo de "se ausentó ~10 min" por haber ido por café.
+    if (window.Motor.enPausa) return;
     for (var i = 0; i < personas.length; i++) {
       var p = personas[i];
 
@@ -213,7 +253,11 @@
           return vision.FaceLandmarker.createFromOptions(fileset, {
             baseOptions: { modelAssetPath: MODELO, delegate: delegado },
             runningMode: 'VIDEO',
-            numFaces: 8,
+            // Un salón de inducción de call center tiene 12-20 personas. Con el
+            // tope en 8, Vera ignoraba en silencio a las demás mientras la
+            // pantalla decía "veo 8 personas": la app estaría prometiendo
+            // vigilar a todos sin poder cumplirlo.
+            numFaces: TOPE_CARAS,
             outputFaceBlendshapes: true
           });
         };

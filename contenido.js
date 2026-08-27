@@ -111,17 +111,21 @@
       if (!linea) continue;
 
       if (linea.charAt(0) === '#') {
-        moduloActual = { titulo: linea.slice(1).trim(), puntos: [], pregunta: null };
+        moduloActual = { titulo: linea.slice(1).trim(), puntos: [], preguntas: [], pregunta: null };
         contenido.modulos.push(moduloActual);
       } else if (linea.charAt(0) === '-' && moduloActual) {
         moduloActual.puntos.push(linea.slice(1).trim());
       } else if (linea.charAt(0) === '?' && moduloActual) {
         var partes = linea.slice(1).split('|');
-        moduloActual.pregunta = {
+        // Varias preguntas por módulo se acumulan. Antes la asignación directa
+        // pisaba la anterior: un cliente que escribía tres perdía dos, en
+        // silencio y sin manera de notarlo hasta el día de la capacitación.
+        moduloActual.preguntas.push({
           texto: (partes[0] || '').trim(),
           claves: (partes[1] || '').split(',').map(function (c) { return c.trim(); }).filter(Boolean),
           respuestaModelo: (partes[2] || '').trim()
-        };
+        });
+        moduloActual.pregunta = moduloActual.preguntas[0]; // alias del primero
       } else if (!contenido.titulo) {
         contenido.titulo = linea;
       }
@@ -131,6 +135,23 @@
     // Módulos sin puntos no sirven para dictar: se descartan en silencio.
     contenido.modulos = contenido.modulos.filter(function (m) { return m.puntos.length > 0; });
     return contenido;
+  }
+
+  /* Cuánto dura la capacitación. Es lo primero que pregunta un jefe de
+     operación antes de sacar asesores del piso, y hoy no había forma de
+     saberlo. La velocidad (13 caracteres por segundo) es la de la voz del
+     navegador a ritmo normal, medida sobre los cursos de fábrica. */
+  function estimarMinutos(contenido, nPersonas) {
+    var caracteres = 0, preguntas = 0;
+    contenido.modulos.forEach(function (m) {
+      m.puntos.forEach(function (p) { caracteres += p.length; });
+      preguntas += (m.preguntas || []).length;
+    });
+    var segundos = caracteres / 13;        // el dictado
+    segundos += preguntas * 45;            // preguntar, esperar y comentar
+    segundos += 40;                        // saludo y despedida
+    segundos += (nPersonas || 0) * 15;     // registro de nombres
+    return Math.max(1, Math.round(segundos / 60));
   }
 
   function leer(clave) {
@@ -160,6 +181,7 @@
       });
     },
     indiceActivo: indiceActivo,
+    claveActiva: function () { return CURSOS[indiceActivo()].clave; },
     elegir: function (indice) { escribir(CLAVE_CURSO_ACTIVO, String(indice)); },
     obtener: function () { return analizarTexto(textoDe(indiceActivo())); },
     obtenerTexto: function () { return textoDe(indiceActivo()); },
@@ -173,6 +195,7 @@
       return CURSOS[indiceActivo()].texto;
     },
     analizarTexto: analizarTexto,
+    estimarMinutos: estimarMinutos,
 
     /* Los cursos editados viven en el localStorage de UN aparato. Sin esto, un
        cliente que arma su inducción en el computador de la sala no puede

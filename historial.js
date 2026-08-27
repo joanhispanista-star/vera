@@ -43,18 +43,34 @@
       duracionMin: acta.duracionMin || 0,
       grupo: acta.grupo || '',
       dictadaPor: acta.dictadaPor || '',
+      rescatada: !!acta.rescatada,
       personas: (acta.personas || []).map(function (p) {
         return {
           nombre: p.nombre || 'Sin registrar',
           atencion: typeof p.atencion === 'number' ? p.atencion : null,
           llamados: p.llamados || 0,
           conversaMs: p.conversaMs || 0,
-          ausenteMs: p.ausenteMs || 0,
+          // undefined ≠ 0: las actas guardadas antes de que existiera este dato
+          // no saben nada de ausencias, y decir "presencia completa" sería
+          // inventarles un hecho a personas reales.
+          ausenteMs: typeof p.ausenteMs === 'number' ? p.ausenteMs : null,
+          llegoTardeMs: typeof p.llegoTardeMs === 'number' ? p.llegoTardeMs : 0,
+          // Sin esto, un acta reabierta perdía el "y volvió a concentrarse":
+          // decía menos que el día que se generó, y siempre en contra.
+          cerroAtenta: !!p.cerroAtenta,
           paraSupervisor: !!p.paraSupervisor,
           respuestas: p.respuestas || []
         };
       })
     };
+  }
+
+  /* Nombres que la app pone sola cuando no supo quién era alguien. No son
+     identidades: fundir los "Asistente 1" de cinco sesiones distintas en una
+     sola ficha crearía una persona que no existe, con constancia y todo. */
+  function esNombreGenerico(nombre) {
+    return /^(asistente|invitado)\s*\d*$/i.test(String(nombre || '').trim()) ||
+      /^sin registrar$/i.test(String(nombre || '').trim());
   }
 
   function listar() {
@@ -71,14 +87,18 @@
       ' · ' + d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
   }
 
+  /* Aciertos sobre preguntas CALIFICABLES. Una pregunta escrita sin palabras
+     clave no se puede calificar, así que no se castiga… pero tampoco se puede
+     contar como acierto: la constancia diría "2 de 2 acertadas" sobre algo que
+     nadie evaluó. Se cuentan aparte. */
   function aciertos(persona) {
-    var bien = 0, total = 0;
+    var bien = 0, total = 0, sinCalificar = 0;
     (persona.respuestas || []).forEach(function (r) {
       if (r.veredicto === 'correcta') { bien++; total++; }
       else if (r.veredicto === 'incorrecta' || r.veredicto === 'sin-respuesta') { total++; }
-      else if (r.veredicto === 'respondida') { total++; bien++; } // sin criterio para calificar: no se castiga
+      else if (r.veredicto === 'respondida') { sinCalificar++; }
     });
-    return { bien: bien, total: total };
+    return { bien: bien, total: total, sinCalificar: sinCalificar };
   }
 
   /* Personas distintas que han pasado por la plataforma, con su resumen.
@@ -91,7 +111,7 @@
       if (!incluirDemos && sesion.modo !== 'camara') return;
       sesion.personas.forEach(function (p) {
         var clave = p.nombre.toLowerCase().trim();
-        if (!clave) return;
+        if (!clave || esNombreGenerico(p.nombre)) return;
         if (!mapa[clave]) {
           mapa[clave] = { nombre: p.nombre, sesiones: [], atencionSuma: 0, atencionN: 0, llamados: 0 };
         }
@@ -122,21 +142,30 @@
   /* CSV para Recursos Humanos. Separador ';' y BOM porque el Excel en español
      abre con coma decimal: con ',' todo cae en una sola columna y el cliente
      concluye que "el archivo salió malo". */
+  function textoPresencia(p) {
+    if (p.ausenteMs === null) return 'sin dato';
+    if (p.llegoTardeMs > 0) return 'llegó tarde';
+    if (p.ausenteMs > 45000) return 'se ausentó ~' + Math.max(1, Math.round(p.ausenteMs / 60000)) + ' min';
+    if (p.ausenteMs > 8000) return 'se ausentó un momento';
+    return 'completa';
+  }
+
   function csv(soloReales) {
-    var filas = [['Fecha', 'Curso', 'Modo', 'Duracion (min)', 'Grupo', 'Asistente',
-                  'Atencion (%)', 'Llamados', 'Conversa (min)', 'Aciertos', 'Preguntas', 'Revisar']];
+    var filas = [['Fecha', 'Curso', 'Modo', 'Duración (min)', 'Grupo', 'Asistente', 'Presencia',
+                  'Atención (%)', 'Llamados', 'Conversa (min)', 'Aciertos', 'Preguntas calificables',
+                  'Sin calificar', 'Revisar']];
     listar().forEach(function (s) {
       if (soloReales && s.modo !== 'camara') return;
       s.personas.forEach(function (p) {
         var ac = aciertos(p);
         filas.push([
           fechaLegible(s.fecha), s.titulo,
-          s.modo === 'camara' ? 'sala real' : 'demostracion',
-          s.duracionMin, s.grupo, p.nombre,
+          s.modo === 'camara' ? (s.rescatada ? 'sala real (acta rescatada)' : 'sala real') : 'demostración',
+          s.duracionMin, s.grupo, p.nombre, textoPresencia(p),
           p.atencion === null ? '' : p.atencion,
           p.llamados,
           p.conversaMs > 45000 ? Math.round(p.conversaMs / 60000) : 0,
-          ac.bien, ac.total,
+          ac.bien, ac.total, ac.sinCalificar,
           p.paraSupervisor ? 'SI' : ''
         ]);
       });
@@ -210,17 +239,34 @@
 
   function borrarPersona(nombre) {
     var clave = String(nombre).toLowerCase().trim();
-    var actas = leerCrudo().map(function (a) {
-      a.personas = (a.personas || []).filter(function (p) {
+    var quitar = function (lista) {
+      return (lista || []).filter(function (p) {
         return String(p.nombre || '').toLowerCase().trim() !== clave;
       });
+    };
+    var actas = leerCrudo().map(function (a) {
+      a.personas = quitar(a.personas);
       return a;
     }).filter(function (a) { return (a.personas || []).length > 0; });
+    // El borrador es la OTRA copia de datos personales y vive aparte: dejarlo
+    // intacto haría falsa la promesa de "borrar sus datos" (Ley 1581).
+    try {
+      var b = JSON.parse(localStorage.getItem(CLAVE_BORRADOR) || 'null');
+      if (b && b.personas) {
+        b.personas = quitar(b.personas);
+        if (b.personas.length) localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(b));
+        else localStorage.removeItem(CLAVE_BORRADOR);
+      }
+    } catch (e) {}
     return escribir(actas);
   }
 
   function borrarTodo() {
-    try { localStorage.removeItem(CLAVE); return true; } catch (e) { return false; }
+    try {
+      localStorage.removeItem(CLAVE);
+      localStorage.removeItem(CLAVE_BORRADOR); // "todo" incluye la sesión a medias
+      return true;
+    } catch (e) { return false; }
   }
 
   /* Borrador de la sesión en curso. Una recarga, un cierre de pestaña o una
@@ -271,11 +317,18 @@
     personas: personas,
     aciertos: aciertos,
     fechaLegible: fechaLegible,
+    textoPresencia: textoPresencia,
+    esNombreGenerico: esNombreGenerico,
     csv: csv,
     descargarCsv: function (soloReales) {
       descargar(nombreConFecha('vera-capacitaciones', 'csv'), csv(soloReales), 'text/csv;charset=utf-8');
     },
     exportarRespaldo: exportarRespaldo,
+    descargarActa: function (acta) {
+      descargar(nombreConFecha('vera-acta', 'json'),
+        JSON.stringify({ version: 1, exportado: new Date().toISOString(), actas: [acta] }, null, 1),
+        'application/json;charset=utf-8');
+    },
     importarRespaldo: importarRespaldo,
     borrarSesion: borrarSesion,
     borrarPersona: borrarPersona,
