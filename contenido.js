@@ -172,6 +172,33 @@
     restaurar: function () {
       return CURSOS[indiceActivo()].texto;
     },
-    analizarTexto: analizarTexto
+    analizarTexto: analizarTexto,
+
+    /* Los cursos editados viven en el localStorage de UN aparato. Sin esto, un
+       cliente que arma su inducción en el computador de la sala no puede
+       usarla en otro, y tendría que volver a escribirla. */
+    exportar: function () {
+      var paquete = { version: 1, exportado: new Date().toISOString(), cursos: {} };
+      CURSOS.forEach(function (c, i) { paquete.cursos[c.clave] = textoDe(i); });
+      return JSON.stringify(paquete, null, 1);
+    },
+    importar: function (textoJson) {
+      var datos;
+      try { datos = JSON.parse(textoJson); } catch (e) {
+        return { ok: false, error: 'El archivo no es un paquete de cursos de Vera.' };
+      }
+      if (!datos || !datos.cursos) return { ok: false, error: 'El archivo no tiene cursos de Vera.' };
+      var cambiados = 0;
+      CURSOS.forEach(function (c) {
+        var texto = datos.cursos[c.clave];
+        if (typeof texto === 'string' && texto.trim()) {
+          escribir('vera.contenido.' + c.clave, texto);
+          cambiados++;
+        }
+      });
+      return cambiados
+        ? { ok: true, cambiados: cambiados }
+        : { ok: false, error: 'El archivo no traía ningún curso reconocible.' };
+    }
   };
 })();

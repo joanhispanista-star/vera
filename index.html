@@ -28,10 +28,18 @@
         <label for="sel-curso">Curso de hoy:</label>
         <select id="sel-curso"></select>
       </div>
+      <div id="aviso-rescate" class="aviso-rescate oculto">
+        <span id="rescate-texto"></span>
+        <span class="registro-acciones">
+          <button id="btn-rescatar" class="btn btn-mini">Ver y guardar el acta</button>
+          <button id="btn-descartar-rescate" class="btn btn-mini">Descartar</button>
+        </span>
+      </div>
       <div id="inicio-resumen" class="resumen-contenido"></div>
       <div class="botonera">
         <button id="btn-comenzar" class="btn btn-primario">Iniciar capacitación</button>
         <button id="btn-editar-contenido" class="btn btn-secundario">Editar contenido</button>
+        <button id="btn-historial" class="btn btn-secundario">Historial y constancias</button>
       </div>
       <p class="letra-menuda">
         Vera es una inteligencia artificial y así se presenta ante el grupo.
@@ -60,6 +68,10 @@
       <div class="prueba-mic">
         <button id="btn-probar-mic" class="btn btn-secundario">🎤 Probar el micrófono</button>
         <span id="resultado-mic" class="resultado-mic"></span>
+      </div>
+      <div class="datos-sesion">
+        <label for="txt-grupo">Grupo o sede <span>(opcional, aparece en el acta y las constancias)</span></label>
+        <input type="text" id="txt-grupo" placeholder="Ej.: Cartera Bogotá — turno mañana" autocomplete="off">
       </div>
       <label class="fila-consentimiento">
         <input type="checkbox" id="chk-consentimiento">
@@ -122,6 +134,7 @@
         <div class="botonera-sala">
           <button id="btn-empezar-registro" class="btn btn-primario oculto">Ya estamos todos — empezar registro</button>
           <button id="btn-cambiar-a-demo" class="btn btn-secundario oculto">Continuar en modo demostración</button>
+          <button id="btn-pausar" class="btn btn-secundario oculto" title="Detiene la capacitación sin cerrar el acta">⏸ Pausar</button>
           <button id="btn-terminar" class="btn btn-mini" title="Corta la sesión y genera el acta con lo acumulado">Terminar y generar acta</button>
         </div>
       </div>
@@ -165,8 +178,62 @@
       <div class="botonera solo-pantalla">
         <button id="btn-whatsapp" class="btn btn-primario">Compartir por WhatsApp</button>
         <button id="btn-imprimir" class="btn btn-secundario">Imprimir acta</button>
+        <button id="btn-constancias" class="btn btn-secundario">Constancias</button>
         <button id="btn-copiar" class="btn btn-secundario">Copiar resumen</button>
+        <button id="btn-volver-historial" class="btn btn-mini oculto">← Volver al historial</button>
         <button id="btn-nueva-sesion" class="btn btn-mini">Nueva sesión</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PANTALLA: HISTORIAL ══════════ -->
+  <section id="p-historial" class="pantalla">
+    <div class="tarjeta">
+      <div class="fila-titulo">
+        <h2>Historial de capacitaciones</h2>
+        <button id="btn-cerrar-historial" class="btn btn-mini">← Volver</button>
+      </div>
+
+      <div class="pestanas">
+        <button class="pestana activa" data-vista="personas">Por persona</button>
+        <button class="pestana" data-vista="sesiones">Por sesión</button>
+      </div>
+
+      <div class="fila-buscar">
+        <input type="text" id="txt-buscar" placeholder="Buscar por nombre…" autocomplete="off">
+        <label class="chk-inline">
+          <input type="checkbox" id="chk-incluir-demos">
+          <span>Incluir demostraciones</span>
+        </label>
+      </div>
+
+      <div id="historial-cuerpo" class="historial-cuerpo"></div>
+
+      <div class="botonera solo-pantalla">
+        <button id="btn-csv" class="btn btn-primario">Exportar a Excel (CSV)</button>
+        <button id="btn-respaldo" class="btn btn-secundario">Guardar respaldo</button>
+        <button id="btn-restaurar" class="btn btn-secundario">Restaurar respaldo</button>
+        <button id="btn-borrar-todo" class="btn btn-mini">Borrar historial</button>
+      </div>
+      <input type="file" id="archivo-respaldo" accept=".json,application/json" class="oculto">
+      <p class="letra-menuda">
+        El historial vive solo en este navegador y en este computador: no hay servidor.
+        Si se borran los datos del navegador, se pierde — por eso conviene guardar un respaldo
+        y llevarlo consigo. Cualquier asistente puede pedir que se borren sus datos (Ley 1581):
+        se hace desde su ficha, en "Por persona".
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════ PANTALLA: CONSTANCIA ══════════ -->
+  <section id="p-constancia" class="pantalla">
+    <div class="constancia-marco">
+      <div id="constancia" class="constancia"></div>
+      <div class="botonera solo-pantalla">
+        <button id="btn-imprimir-constancia" class="btn btn-primario">Imprimir / Guardar PDF</button>
+        <button id="btn-constancia-anterior" class="btn btn-secundario">← Anterior</button>
+        <button id="btn-constancia-siguiente" class="btn btn-secundario">Siguiente →</button>
+        <button id="btn-cerrar-constancia" class="btn btn-mini">Cerrar</button>
       </div>
     </div>
   </section>
@@ -186,12 +253,16 @@
     <div class="botonera">
       <button id="btn-guardar-contenido" class="btn btn-primario">Guardar</button>
       <button id="btn-restaurar-contenido" class="btn btn-secundario">Restaurar el de fábrica</button>
+      <button id="btn-exportar-cursos" class="btn btn-secundario" title="Descarga los tres cursos para llevarlos a otro computador">Exportar cursos</button>
+      <button id="btn-importar-cursos" class="btn btn-secundario">Importar cursos</button>
       <button id="btn-cerrar-editor" class="btn btn-mini">Cerrar sin guardar</button>
     </div>
+    <input type="file" id="archivo-cursos" accept=".json,application/json" class="oculto">
   </div>
 </div>
 
 <script src="contenido.js"></script>
+<script src="historial.js"></script>
 <script src="vera.js"></script>
 <script src="simulacion.js"></script>
 <script src="motor-atencion.js"></script>

@@ -18,3 +18,16 @@ Plataforma de capacitación sin capacitador humano. El contexto completo está e
 6. Web estándar sin build ni dependencias: archivos sueltos servidos por
    `servidor.js` (puerto 8240). Se prueba con `ABRIR.cmd` o con la entrada
    `capacitadora` del launch.json de PLAZA. `?rapido=1` salta el audio.
+7. **El acta es evidencia laboral**: nunca afirma de una persona algo que no se
+   midió, y siempre se puede distinguir una sesión real de una demostración y
+   un acta completa de una rescatada. Toda función nueva que toque el acta se
+   revisa con esa pregunta.
+8. Sin servidor ni base de datos: todo en `localStorage` de un aparato. Por eso
+   respaldo/exportación no son extras — son lo único que evita perder el
+   historial. Si algún día hay backend, se discute antes: hoy la venta se apoya
+   en que nada sale del computador.
+
+**Trampa al probar**: el navegador embebido congela los temporizadores
+encadenados de una pestaña que lleva rato oculta, y una corrida se queda a
+medias sin que haya bug. Las pruebas de sesión completa, siempre en pestaña
+recién abierta.

@@ -339,6 +339,177 @@ h2 { font-size: 22px; margin-bottom: 10px; }
 .tabla-acta .alerta { color: var(--rojo); font-weight: 600; }
 .tabla-acta .bien { color: var(--verde); }
 
+.aviso-rescate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--fondo-suave);
+  border: 1px solid var(--ambar);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--texto);
+}
+
+/* ── Historial ────────────────────────────────────────── */
+.fila-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.fila-titulo h2 { margin-bottom: 0; }
+
+.datos-sesion { text-align: left; margin: 16px 0 4px; }
+.datos-sesion label { display: block; font-size: 14px; margin-bottom: 6px; color: var(--texto); }
+.datos-sesion label span { color: var(--texto-suave); font-size: 12px; }
+.datos-sesion input {
+  width: 100%;
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--texto);
+  font-size: 15px;
+  font-family: inherit;
+}
+.datos-sesion input:focus { outline: none; border-color: var(--acento); }
+
+.pestanas { display: flex; gap: 8px; border-bottom: 1px solid var(--borde); margin-bottom: 14px; }
+.pestana {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--texto-suave);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.pestana.activa { color: var(--acento); border-bottom-color: var(--acento); }
+
+.fila-buscar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.fila-buscar input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--texto);
+  font-size: 15px;
+  font-family: inherit;
+}
+.fila-buscar input:focus { outline: none; border-color: var(--acento); }
+.chk-inline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--texto-suave); cursor: pointer; }
+.chk-inline input { width: 16px; height: 16px; accent-color: var(--acento); }
+
+.historial-cuerpo { min-height: 180px; margin-bottom: 18px; }
+.vacio-historial { color: var(--texto-suave); font-size: 14px; padding: 30px 0; text-align: center; line-height: 1.6; }
+
+.registro {
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.registro-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.registro-nombre { font-size: 16px; font-weight: 700; }
+.registro-meta { font-size: 13px; color: var(--texto-suave); }
+.registro-lista { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.registro-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--texto-suave);
+  padding: 6px 0;
+  border-top: 1px solid var(--borde);
+}
+.registro-linea b { color: var(--texto); font-weight: 600; }
+.etiqueta-demo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: 2px 8px;
+  color: var(--texto-suave);
+}
+.registro-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Constancia ───────────────────────────────────────── */
+.constancia-marco { max-width: 900px; margin: 0 auto; }
+.constancia {
+  background: #fff;
+  color: #16202e;
+  border-radius: var(--radio);
+  padding: 48px 56px;
+  margin-bottom: 18px;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.constancia .c-marca {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #1fa8ac;
+  text-align: center;
+}
+.constancia h1 {
+  font-size: 27px;
+  text-align: center;
+  margin: 18px 0 6px;
+  letter-spacing: 1px;
+}
+.constancia .c-linea { height: 2px; background: #35c4c8; width: 90px; margin: 0 auto 26px; }
+.constancia .c-texto { font-size: 15px; line-height: 1.8; text-align: center; color: #40506b; }
+.constancia .c-nombre {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  margin: 14px 0;
+  color: #16202e;
+}
+.constancia .c-curso { font-size: 19px; text-align: center; font-style: italic; margin: 6px 0 22px; }
+.constancia .c-datos {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+  flex-wrap: wrap;
+  margin: 26px 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+.constancia .c-dato { text-align: center; }
+.constancia .c-dato .valor { font-size: 21px; font-weight: 700; color: #16202e; }
+.constancia .c-dato .rotulo { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #7d8ba1; margin-top: 3px; }
+.constancia .c-pie {
+  border-top: 1px solid #d8dfe8;
+  margin-top: 30px;
+  padding-top: 14px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #7d8ba1;
+  text-align: center;
+}
+
 /* ── Modal editor ─────────────────────────────────────── */
 .modal {
   position: fixed;
@@ -387,14 +558,17 @@ h2 { font-size: 22px; margin-bottom: 10px; }
   .col-vera { max-width: 340px; margin: 0 auto; }
 }
 
-/* ── Impresión: solo el acta, en blanco ───────────────── */
+/* ── Impresión: solo lo que se está viendo (acta o constancia) ── */
 @media print {
   body { background: #fff; color: #000; }
   .cabecera, .solo-pantalla, #btn-saltar { display: none !important; }
   .pantalla { display: none !important; }
-  #p-acta { display: block !important; padding: 0; }
+  .pantalla.activa { display: block !important; padding: 0; }
   .tarjeta { border: none; background: #fff; }
   .acta-datos, .letra-menuda { color: #444; }
   .tabla-acta th, .tabla-acta td { border-bottom: 1px solid #999; color: #000; }
   .tabla-acta .alerta { color: #000; font-weight: 700; }
+  /* La constancia se imprime como documento suelto, sin márgenes de pantalla */
+  .constancia { padding: 30px 20px; margin: 0; }
+  #p-constancia .constancia-marco { max-width: none; }
 }

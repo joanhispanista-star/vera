@@ -56,6 +56,47 @@ entrega el acta con lo acumulado, y tocar la ficha de una persona permite
 corregirle el nombre. En el registro, **"Ya no está / omitir"** salta a quien
 se fue antes de decir su nombre.
 
+## El historial: lo que de verdad se vende
+
+Botón **"Historial y constancias"** en el inicio. Una empresa no paga por "una
+IA que capacita": paga por **poder demostrar que capacitó** cuando llega una
+auditoría o la SIC pregunta por la Ley 2300.
+
+- **Por persona**: responde "¿Juan ya hizo la inducción?" — cursos, atención
+  media histórica y llamados de cada quien. Las demostraciones se excluyen por
+  defecto: no son evidencia de nada.
+- **Por sesión**: cada capacitación con su grupo/sede, asistentes y duración.
+  Desde ahí se reabre el acta completa o se emiten las constancias.
+- **Constancia individual** imprimible (o guardable como PDF desde el
+  navegador): el papel que RR.HH. archiva en la hoja de vida. Dice "asistió",
+  y solo muestra nota si de verdad hubo preguntas. Una constancia de
+  demostración se marca a sí misma como no válida.
+- **Exportar a Excel (CSV)**: para el archivo de cumplimiento de la empresa.
+  Sale con separador `;` y BOM para que Excel en español lo abra en columnas.
+- **Respaldo**: el historial vive solo en ese navegador. Guardar respaldo
+  descarga un JSON; restaurar lo SUMA al historial actual (nunca lo reemplaza).
+- **Borrar los datos de una persona**: la Ley 1581 le da ese derecho a
+  cualquier asistente, y se hace desde su ficha.
+
+## Otras funciones del día a día
+
+- **Pausar** (⏸ en la sala): el descanso de media sesión. La capacitación se
+  detiene sin cerrar el acta, el tiempo pausado no se le cobra a la duración,
+  y si el descanso cae a mitad de un punto, al volver Vera lo repite entero.
+- **Ronda final**: al terminar los módulos, Vera pregunta a cada asistente que
+  todavía no haya respondido. Sin esto, en una sala de doce, once salían con
+  "no le tocó pregunta" y el acta no probaba que nadie hubiera aprendido.
+- **Rescate de acta**: si la sesión se cae (recarga, cierre, Windows
+  actualizándose), al volver a abrir se ofrece rescatar el acta de lo que
+  alcanzó a pasar. No se ofrece "continuar": reanudar exigiría volver a
+  reconocer las caras, y prometerlo sería mentir.
+- **Grupo o sede**: campo opcional antes de empezar; queda en el acta, en las
+  constancias y en el CSV.
+- **Los que llegan tarde**: si alguien entra con la sesión empezada, Vera lo
+  saluda y avisa al supervisor para que le ponga el nombre tocando su ficha.
+- **Exportar / importar cursos** (en el editor): para llevar la inducción
+  editada de un computador a otro.
+
 ## Los tres cursos de fábrica
 
 Se eligen con el selector "Curso de hoy" en la pantalla de inicio:
@@ -145,8 +186,11 @@ nunca se bloquea por el micrófono.
 
 Todo es web estándar, sin dependencias ni build:
 
-- `index.html` — las 4 pantallas (inicio, consentimiento, sala, acta) + editor.
-- `contenido.js` — el contenido en texto plano editable; parser incluido.
+- `index.html` — las 6 pantallas (inicio, consentimiento, sala, acta,
+  historial, constancia) + el editor de contenido.
+- `contenido.js` — los cursos en texto plano editable; parser, exportar/importar.
+- `historial.js` — el archivo de actas: agregación por persona, CSV, respaldo,
+  borrado (Ley 1581) y el borrador de rescate.
 - `vera.js` — avatar SVG animado, voz (speechSynthesis), oído (SpeechRecognition).
 - `simulacion.js` — la sala simulada con guion (celular, sueño, ausencia).
 - `motor-atencion.js` — MediaPipe Face Landmarker (modo cámara) + la misma

@@ -37,6 +37,7 @@
     alertasActivas: false,    // la app la enciende solo mientras se dicta un módulo
     bloquearNuevas: false,    // tras el registro, una cara nueva es "Invitado"
     alAlerta: null,           // callback(persona, motivo)
+    alLlegarTarde: null,      // callback(persona) cuando entra alguien con la sesión empezada
 
     get modo() { return modo; },
     personas: function () { return personas.slice(); },
@@ -332,13 +333,19 @@
         continue;
       }
       var numeroNuevo = siguienteId++;
+      var esRezagado = window.Motor.bloquearNuevas;
       var nueva = prepararPersona({
         id: 'cam-' + numeroNuevo,
         x: cara.cx, y: cara.cy,
-        nombre: window.Motor.bloquearNuevas ? ('Invitado ' + numeroNuevo) : ''
+        nombre: esRezagado ? ('Invitado ' + numeroNuevo) : ''
       });
       actualizarConCara(nueva, cara, ahora);
       personas.push(nueva);
+      // Alguien entró con la capacitación empezada: la app decide qué hacer.
+      // No es una falta y no cuenta como llamado de atención.
+      if (esRezagado && typeof window.Motor.alLlegarTarde === 'function') {
+        window.Motor.alLlegarTarde(nueva);
+      }
     }
   }
 
