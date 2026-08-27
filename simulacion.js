@@ -60,13 +60,17 @@
   var GUION = {
     'm0p1': { quien: 'sim-2', tipo: 'celular', duracion: 18000 },
     'm1p1': { quien: 'sim-4', tipo: 'suenio', duracion: 14000 },
-    'm2p0': { quien: 'sim-3', tipo: 'ausente', duracion: 16000 }
+    'm2p0': { quien: 'sim-3', tipo: 'ausente', duracion: 16000 },
+    // La conversa la protagoniza Paula: Jorge ya recibió llamado en m0p1 y el
+    // enfriamiento de 45 s se tragaría esta alerta en las corridas rápidas.
+    'm2p1': { quien: 'sim-1', tipo: 'conversando', duracion: 14000 }
   };
 
   function aplicarComportamiento(p, tipo, duracion) {
     p.comportamiento = { tipo: tipo, hasta: Date.now() + duracion };
     if (tipo === 'celular') { p.atentoAhora = false; p.estadoVisual = 'distraido'; }
     if (tipo === 'suenio') { p.atentoAhora = false; p.estadoVisual = 'ojos-cerrados'; }
+    if (tipo === 'conversando') { p.atentoAhora = false; p.estadoVisual = 'hablando'; }
     if (tipo === 'ausente') { p.atentoAhora = false; p.estadoVisual = 'ausente'; p.presente = false; }
   }
 
@@ -105,6 +109,7 @@
     var py = 235 + Math.sin(t / 900 + i * 1.7) * 2; // respiración
     var duerme = p.estadoVisual === 'ojos-cerrados';
     var distraido = p.estadoVisual === 'distraido';
+    var conversando = p.estadoVisual === 'hablando';
 
     // Silla (queda visible aunque la persona se salga)
     ctx.fillStyle = '#233042';
@@ -167,9 +172,10 @@
       ctx.stroke();
     } else {
       var dy = mirandoAbajo ? 3 : 0;
+      var dx = conversando ? -3 : 0; // conversando: mira al vecino, no al frente
       ctx.beginPath();
-      ctx.arc(px - 8, cy + 1 + dy, 2.5, 0, Math.PI * 2);
-      ctx.arc(px + 8, cy + 1 + dy, 2.5, 0, Math.PI * 2);
+      ctx.arc(px - 8 + dx, cy + 1 + dy, 2.5, 0, Math.PI * 2);
+      ctx.arc(px + 8 + dx, cy + 1 + dy, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
     if (Math.random() < 0.005) p.parpadeoHasta = t + 140;
@@ -185,12 +191,19 @@
       ctx.stroke();
     }
 
-    // Boca (abierta si está "hablando" con Vera)
-    if (t < p.hablandoHasta) {
+    // Boca (abierta si responde a Vera o si está conversando con el vecino)
+    if (t < p.hablandoHasta || conversando) {
       ctx.fillStyle = '#8c3a34';
       ctx.beginPath();
-      ctx.ellipse(px, cy + 11, 4, 3 + Math.random() * 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(px, cy + 11, 4, 1.5 + Math.abs(Math.sin(t / 130)) * 3, 0, 0, Math.PI * 2);
       ctx.fill();
+      if (conversando) {
+        // burbuja de charla hacia el vecino
+        ctx.fillStyle = 'rgba(232,185,61,0.9)';
+        ctx.font = 'bold 12px "Segoe UI", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('bla bla…', px - 26, cy - 6 + Math.sin(t / 400) * 2);
+      }
     } else {
       ctx.strokeStyle = '#8c3a34';
       ctx.lineWidth = 2;

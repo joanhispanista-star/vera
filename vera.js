@@ -158,6 +158,19 @@
   // ── El oído ─────────────────────────────────────────────
   var Reconocedor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var reconocimientoActivo = null;
+  var ultimoErrorVoz = null;
+
+  // El reconocimiento falla con códigos crípticos; al usuario se le habla claro.
+  function explicarErrorVoz(err) {
+    if (err === 'not-allowed' || err === 'service-not-allowed') {
+      return 'El navegador tiene bloqueado el micrófono. Toca el candado junto a la dirección, permite el micrófono y recarga.';
+    }
+    if (err === 'audio-capture') return 'No se encontró micrófono en este equipo.';
+    if (err === 'network') return 'El dictado por voz no está disponible en este navegador (le pasa a Edge). En Chrome funciona; el teclado siempre sirve.';
+    if (err === 'no-speech') return 'El micrófono está activo pero no se oyó nada. ¿Está seleccionado el micrófono correcto en el navegador?';
+    if (err === 'sin-soporte') return 'Este navegador no tiene dictado por voz. Usa Chrome, o responde con el teclado.';
+    return 'El micrófono no respondió' + (err ? ' (' + err + ')' : '') + '. El teclado siempre funciona.';
+  }
 
   window.Vera = {
 
@@ -227,23 +240,78 @@
     },
 
     /* Escucha por el micrófono unos segundos y devuelve el texto, o null si
-       no hay reconocimiento disponible / no se entendió nada. La app siempre
-       ofrece teclado como alternativa: el demo no puede depender del micrófono. */
-    escuchar: function (segundos) {
+       no se entendió nada. Cuando devuelve null, Vera.ultimoErrorVoz dice POR
+       QUÉ (código del navegador) — la primera queja real de Joan fue que el
+       micrófono fallaba en silencio. Mientras escucha, muestra un medidor de
+       nivel: la prueba visible de que el micrófono sí está capturando.
+       La app siempre ofrece teclado: el demo no puede depender del micrófono. */
+    escuchar: function (segundos, medidorEl) {
       segundos = segundos || 7;
+      var destino = medidorEl || estadoEl;
+      ultimoErrorVoz = null;
       return new Promise(function (resolver) {
-        if (!Reconocedor || MODO_RAPIDO) { resolver(null); return; }
+        if (MODO_RAPIDO) { resolver(null); return; }
+        if (!Reconocedor) { ultimoErrorVoz = 'sin-soporte'; resolver(null); return; }
+
+        // Vuelo único: el navegador solo permite un reconocimiento a la vez.
+        // Se aborta el anterior (abort, no stop: stop entregaría un resultado
+        // tardío que la app auto-enviaría como respuesta a medio hablar).
+        if (reconocimientoActivo) {
+          try { reconocimientoActivo.abort(); } catch (e) {}
+        }
+        // Cada escucha lleva su propio error; el global se publica al terminar,
+        // para que el 'aborted' de una escucha vieja no tape el error de la nueva.
+        var errorLocal = null;
+
+        // Medidor de nivel con Web Audio: independiente del reconocimiento,
+        // así se distingue "no capta audio" de "capta pero no entiende".
+        var BARRAS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇'];
+        var contextoAudio = null, flujoMic = null, temporizadorNivel = null;
+        var ContextoAudio = window.AudioContext || window.webkitAudioContext;
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && ContextoAudio) {
+          navigator.mediaDevices.getUserMedia({ audio: true }).then(function (flujo) {
+            if (listo) { flujo.getTracks().forEach(function (t) { t.stop(); }); return; }
+            flujoMic = flujo;
+            contextoAudio = new ContextoAudio();
+            if (contextoAudio.state === 'suspended') contextoAudio.resume();
+            var analizador = contextoAudio.createAnalyser();
+            analizador.fftSize = 512;
+            contextoAudio.createMediaStreamSource(flujo).connect(analizador);
+            var datos = new Uint8Array(analizador.frequencyBinCount);
+            temporizadorNivel = setInterval(function () {
+              analizador.getByteTimeDomainData(datos);
+              var pico = 0;
+              for (var i = 0; i < datos.length; i++) {
+                var d = Math.abs(datos[i] - 128);
+                if (d > pico) pico = d;
+              }
+              var idx = Math.min(BARRAS.length - 1, Math.floor(pico / 14));
+              if (destino) destino.textContent = '🎤 escuchando ' + BARRAS[idx];
+            }, 120);
+          }).catch(function () { /* sin medidor; el reconocimiento dirá su error */ });
+        }
+
         var rec = new Reconocedor();
         reconocimientoActivo = rec;
         rec.lang = 'es-CO';
         rec.interimResults = false;
         rec.maxAlternatives = 1;
         var listo = false;
+        var temporizadorLimite = null;
         var terminar = function (texto) {
           if (listo) return;
           listo = true;
-          reconocimientoActivo = null;
-          if (estadoEl) estadoEl.textContent = '';
+          ultimoErrorVoz = errorLocal;
+          // Solo la escucha vigente suelta la referencia y borra el letrero:
+          // una escucha vieja no puede pisar a la que la reemplazó.
+          if (reconocimientoActivo === rec) {
+            reconocimientoActivo = null;
+            if (destino) destino.textContent = '';
+          }
+          clearTimeout(temporizadorLimite);
+          clearInterval(temporizadorNivel);
+          if (flujoMic) flujoMic.getTracks().forEach(function (t) { t.stop(); });
+          if (contextoAudio) { try { contextoAudio.close(); } catch (e) {} }
           try { rec.stop(); } catch (e) {}
           resolver(texto);
         };
@@ -251,17 +319,41 @@
           var t = ev.results && ev.results[0] && ev.results[0][0] ? ev.results[0][0].transcript : '';
           terminar(t ? t.trim() : null);
         };
-        rec.onerror = function () { terminar(null); };
-        rec.onend = function () { terminar(null); };
-        setTimeout(function () { terminar(null); }, segundos * 1000);
-        if (estadoEl) estadoEl.textContent = '🎤 escuchando…';
-        try { rec.start(); } catch (e) { terminar(null); }
+        rec.onerror = function (ev) {
+          errorLocal = ev && ev.error ? ev.error : 'desconocido';
+          terminar(null);
+        };
+        rec.onend = function () {
+          if (!listo && !errorLocal) errorLocal = 'no-speech';
+          terminar(null);
+        };
+        // El conteo arranca cuando el micrófono de verdad empieza a capturar:
+        // el diálogo de permiso del navegador no puede comerse los segundos.
+        rec.onstart = function () {
+          clearTimeout(temporizadorLimite);
+          temporizadorLimite = setTimeout(function () {
+            if (!errorLocal) errorLocal = 'no-speech';
+            terminar(null);
+          }, segundos * 1000);
+        };
+        // Red absoluta por si onstart nunca llega (permiso colgado, etc.).
+        temporizadorLimite = setTimeout(function () {
+          if (!errorLocal) errorLocal = 'no-speech';
+          terminar(null);
+        }, (segundos + 25) * 1000);
+        if (destino) destino.textContent = '🎤 escuchando…';
+        try { rec.start(); } catch (e) { errorLocal = 'desconocido'; terminar(null); }
       });
     },
 
+    get ultimoErrorVoz() { return ultimoErrorVoz; },
+    explicarErrorVoz: explicarErrorVoz,
+
     detenerEscucha: function () {
+      // abort y no stop: stop entrega un resultado tardío con el audio parcial
+      // y la app lo enviaría como respuesta cuando el usuario ya escribió.
       if (reconocimientoActivo) {
-        try { reconocimientoActivo.stop(); } catch (e) {}
+        try { reconocimientoActivo.abort(); } catch (e) {}
       }
     },
 

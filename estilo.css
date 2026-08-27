@@ -140,6 +140,18 @@ h2 { font-size: 22px; margin-bottom: 10px; }
 }
 .caja-legal p + p { margin-top: 10px; }
 .caja-legal strong { color: var(--texto); }
+.prueba-mic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 4px;
+}
+.resultado-mic { font-size: 13px; color: var(--texto-suave); max-width: 380px; text-align: left; }
+.respuesta-aviso { font-size: 13px; color: var(--ambar); margin-bottom: 6px; }
+.respuesta-aviso:empty { display: none; }
+
 .fila-consentimiento {
   display: flex;
   align-items: flex-start;
@@ -296,6 +308,7 @@ h2 { font-size: 22px; margin-bottom: 10px; }
 .chip-persona.atento .punto { background: var(--verde); }
 .chip-persona.distraido .punto { background: var(--ambar); }
 .chip-persona.ojos-cerrados .punto { background: var(--ambar); }
+.chip-persona.hablando .punto { background: var(--ambar); }
 .chip-persona.ausente .punto { background: var(--rojo); }
 .chip-persona .nombre { font-weight: 600; min-width: 90px; }
 .chip-persona .barra {

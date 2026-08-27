@@ -135,6 +135,9 @@
     base.ausenteAcumMs = 0;
     base.ausenteAvisado = false;
     base.ojosCerradosDesdeMs = 0;
+    base.bocaHistoria = [];
+    base.hablandoDesdeMs = 0;
+    base.hablandoAcumMs = 0;
     base.respuestas = [];
     base.yaPreguntado = false;
     base.estado = base.estadoVisual || 'atento';
@@ -178,6 +181,9 @@
       if (window.Motor.alertasActivas) {
         p.sumaEma += p.ema;
         p.nMuestras += 1;
+        // Solo cuenta la conversa DURANTE el dictado: responder una pregunta
+        // de Vera también mueve la boca y eso no puede ir al acta como falta.
+        if (p.estado === 'hablando') p.hablandoAcumMs += dt;
 
         var enfriado = (ahora - p.ultimaAlertaMs) > ENFRIAMIENTO_ALERTA_MS;
         // Solo se alerta a quien SIGUE sin atender: si ya volvió a mirar,
@@ -185,6 +191,7 @@
         if (p.ema < ALERTA_EMA && !p.atento && enfriado && typeof window.Motor.alAlerta === 'function') {
           var motivo = p.estado === 'ausente' ? 'ausente'
                      : p.estado === 'ojos-cerrados' ? 'ojos-cerrados'
+                     : p.estado === 'hablando' ? 'hablando'
                      : 'distraido';
           // La ausencia se anuncia UNA vez por salida: repetir el mismo aviso
           // cada 45 s inflaría los llamados hasta "revisar con supervisor".
@@ -249,6 +256,7 @@
       }
 
       var parpadeo = 0;
+      var boca = 0;
       var cats = formas[i] && formas[i].categories ? formas[i].categories : [];
       var nCats = 0;
       for (var k = 0; k < cats.length; k++) {
@@ -256,6 +264,7 @@
           parpadeo += cats[k].score;
           nCats++;
         }
+        if (cats[k].categoryName === 'jawOpen') boca = cats[k].score;
       }
       if (nCats) parpadeo /= nCats;
 
@@ -267,7 +276,8 @@
         caja: { x: 1 - maxX, y: minY, w: maxX - minX, h: maxY - minY },
         giro: (nariz.x - ojosX) / iod,
         cabeceo: (nariz.y - ojosY) / iod,
-        parpadeo: parpadeo
+        parpadeo: parpadeo,
+        boca: boca
       });
     }
     ultimaDeteccion = caras;
@@ -332,6 +342,33 @@
     }
   }
 
+  /* ¿Está hablando? La boca de quien conversa SUBE Y BAJA varias veces por
+     segundo; un bostezo sube y baja UNA sola vez. Por eso se cuentan
+     inversiones de dirección con histéresis (giros reales de más de 0.03,
+     para que el ruido del detector en las mesetas no cuente como giro), no
+     deltas sueltos. Además se exige que la boca abra de verdad (max > 0.18,
+     valor empírico: mascar chicle con labios cerrados queda por debajo).
+     Advertencia honesta: un mascador enérgico con la boca abierta puede
+     seguir colando un falso positivo — para eso están el periodo de gracia,
+     el enfriamiento de 45 s y el "indicio, no medición" del acta. */
+  function detectarHabla(historia) {
+    if (historia.length < 12) return false;
+    var min = 1, max = 0;
+    var inversiones = 0, dir = 0, extremo = historia[0];
+    for (var i = 0; i < historia.length; i++) {
+      if (historia[i] < min) min = historia[i];
+      if (historia[i] > max) max = historia[i];
+      var d = historia[i] - extremo;
+      if (Math.abs(d) > 0.03) {
+        var nd = d > 0 ? 1 : -1;
+        if (dir !== 0 && nd !== dir) inversiones++;
+        dir = nd;
+        extremo = historia[i];
+      }
+    }
+    return (max - min) > 0.12 && max > 0.18 && inversiones >= 3;
+  }
+
   function actualizarConCara(p, cara, ahora) {
     p.perdidaDesde = 0;
     p.presente = true;
@@ -354,15 +391,25 @@
     if (!ojosCerrados) p.ojosCerradosDesdeMs = 0;
     var dormido = p.ojosCerradosDesdeMs && (ahora - p.ojosCerradosDesdeMs > OJOS_CERRADOS_MS);
 
-    p.estado = dormido ? 'ojos-cerrados' : desviado ? 'distraido' : 'atento';
-    p.atento = !dormido && !desviado;
+    p.bocaHistoria.push(cara.boca || 0);
+    if (p.bocaHistoria.length > 20) p.bocaHistoria.shift();
+    // Periodo de gracia como el de los ojos: una risa, una tos o un "sí"
+    // suelto no convierten a nadie en "conversando". Conservador a favor
+    // del empleado, igual que el resto del acta.
+    var oscila = detectarHabla(p.bocaHistoria);
+    if (oscila && !p.hablandoDesdeMs) p.hablandoDesdeMs = ahora;
+    if (!oscila) p.hablandoDesdeMs = 0;
+    var hablando = !!(p.hablandoDesdeMs && (ahora - p.hablandoDesdeMs > 2000));
+
+    p.estado = dormido ? 'ojos-cerrados' : hablando ? 'hablando' : desviado ? 'distraido' : 'atento';
+    p.atento = p.estado === 'atento';
   }
 
   function dibujarOverlay() {
     if (!ctxOverlay) return;
     var W = overlay.width, H = overlay.height;
     ctxOverlay.clearRect(0, 0, W, H);
-    var colores = { atento: '#4fc37f', distraido: '#e8b93d', 'ojos-cerrados': '#e8b93d', ausente: '#e05d5d' };
+    var colores = { atento: '#4fc37f', distraido: '#e8b93d', 'ojos-cerrados': '#e8b93d', hablando: '#e8b93d', ausente: '#e05d5d' };
 
     for (var i = 0; i < personas.length; i++) {
       var p = personas[i];

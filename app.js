@@ -77,14 +77,17 @@
 
   function fraseLlamado(p, motivo) {
     var nombre = p.nombre || 'alguien del grupo';
+    if (p.llamados >= 3) {
+      return nombre + ', tercer llamado. Esto queda en el acta para que lo revises con tu supervisor. Sigamos.';
+    }
     if (motivo === 'ausente') {
       return 'Veo que ' + nombre + ' ya no está en su puesto. Queda anotado en el acta.';
     }
     if (motivo === 'ojos-cerrados') {
       return nombre + ', te estoy viendo los ojos cerrados. ¡Arriba, que esto se pregunta al final!';
     }
-    if (p.llamados >= 3) {
-      return nombre + ', tercer llamado. Esto queda en el acta para que lo revises con tu supervisor. Sigamos.';
+    if (motivo === 'hablando') {
+      return nombre + ', te veo conversando. Aquí la que está dictando soy yo — te necesito oyendo, que esto se pregunta al final.';
     }
     if (p.llamados === 2) {
       return nombre + ', segunda vez que te llamo la atención. Necesito que estés aquí conmigo.';
@@ -172,7 +175,12 @@
     return window.Vera.escuchar(7).then(function (oido) {
       var nombre = limpiarNombre(oido);
       if (nombre && nombre.length >= 2) return nombre;
-      return window.Vera.decir('No te escuché bien. Que alguien me escriba el nombre con el teclado, por favor.')
+      // Si el problema es el micrófono (y no que habló pasito), se dice claro.
+      var err = window.Vera.ultimoErrorVoz;
+      var frase = (err && err !== 'no-speech')
+        ? 'Parece que el micrófono no está disponible en este navegador. Que alguien me escriba el nombre, por favor.'
+        : 'No te escuché bien. Que alguien me escriba el nombre con el teclado, por favor.';
+      return window.Vera.decir(frase)
         .then(function () {
           // La descripción empieza con "tú, ..." porque Vera la dice de frente;
           // en la etiqueta escrita ese "tú" queda agramatical y se recorta.
@@ -259,6 +267,14 @@
       cadena = cadena.then(function () {
         if (terminada) return;
         pintarModulo(m, i);
+        // Borrón al arrancar cada módulo: responder la pregunta anterior por
+        // voz también mueve la boca y baja la media — ese arrastre no puede
+        // producir un llamado inmerecido en los primeros segundos del módulo.
+        window.Motor.presentes().forEach(function (p) {
+          p.ema = Math.max(p.ema, 0.9);
+          p.bocaHistoria = [];
+          p.hablandoDesdeMs = 0;
+        });
         window.Motor.alertasActivas = true;
         var puntosCadena = Promise.resolve();
         m.puntos.forEach(function (punto, j) {
@@ -326,11 +342,20 @@
       };
       resolverRespuesta = entregar;
       $('respuesta-para').textContent = 'Responde ' + p.nombre + ' — por voz o con el teclado.';
+      $('respuesta-aviso').textContent = '';
       $('txt-respuesta').value = '';
       $('zona-respuesta').classList.remove('oculto');
-      // Primer intento automático por voz; si no funciona, quedan los botones.
+      // Primer intento automático por voz; si no funciona, se dice POR QUÉ
+      // en pantalla en vez de fallar en silencio, y quedan los botones.
       window.Vera.escuchar(9).then(function (oido) {
-        if (oido && oido.trim().length > 1) entregar(oido.trim());
+        if (resuelto) return;
+        if (oido && oido.trim().length > 1) { entregar(oido.trim()); return; }
+        // 'aborted' no es un fallo del micrófono: es esta misma app cortando
+        // una escucha vieja para arrancar otra. No se le muestra al usuario.
+        var err = window.Vera.ultimoErrorVoz;
+        if (!window.Vera.modoRapido && err !== 'aborted') {
+          $('respuesta-aviso').textContent = window.Vera.explicarErrorVoz(err);
+        }
       });
     });
   }
@@ -391,13 +416,12 @@
       }
       var html = personas.map(function (p, i) {
         var pct = Math.round(p.ema * 100);
-        var etiquetas = { atento: 'atenta/o', distraido: 'distraída/o', 'ojos-cerrados': 'ojos cerrados', ausente: 'ausente' };
-        return '<div class="chip-persona ' + p.estado + '" data-idx="' + i + '">' +
+        var etiquetas = { atento: 'atenta/o', distraido: 'distraída/o', 'ojos-cerrados': 'ojos cerrados', hablando: 'conversando', ausente: 'ausente' };
+        return '<div class="chip-persona ' + p.estado + '" data-idx="' + i + '" title="' + etiquetas[p.estado] + '">' +
           '<span class="punto"></span>' +
           '<span class="nombre">' + (p.nombre || 'sin registrar') + '</span>' +
           '<span class="barra"><i style="width:' + pct + '%"></i></span>' +
           (p.llamados ? '<span class="llamados">⚠ ' + p.llamados + '</span>' : '') +
-          '<span class="llamados" title="' + etiquetas[p.estado] + '"></span>' +
           '</div>';
       }).join('');
       // Repintar solo cuando algo cambió: reconstruir los nodos dos veces por
@@ -421,6 +445,7 @@
     var personas = window.Motor.personas();
     window.Motor.detener();
     window.Vera.callar();
+    window.Vera.detenerEscucha(); // que el micrófono no siga abierto en el acta
 
     if (!inicioSesion) inicioSesion = Date.now(); // sesión cortada antes del registro
     var duracionMin = Math.max(1, Math.round((Date.now() - inicioSesion) / 60000));
@@ -460,6 +485,13 @@
         claseObs = '';
       }
       else { obs = 'Sin novedad'; claseObs = 'bien'; }
+      // La conversa acumulada durante el dictado se reporta aparte: es el
+      // caso "85% de atención pero se la pasó hablando" que pidió Joan.
+      if (p.hablandoAcumMs > 45000) {
+        var minCharla = Math.max(1, Math.round(p.hablandoAcumMs / 60000));
+        obs = (obs === 'Sin novedad' ? '' : obs + ' · ') + 'Conversó ~' + minCharla + ' min durante el dictado';
+        if (claseObs === 'bien') claseObs = '';
+      }
       return '<tr>' +
         '<td>' + (p.nombre || 'Sin registrar') + '</td>' +
         '<td>' + presencia + '</td>' +
@@ -488,8 +520,11 @@
       new Date().toLocaleDateString('es-CO') + ' (' + (modo === 'camara' ? 'sala real' : 'demo') + ')', ''];
     personas.forEach(function (p) {
       var atencion = p.nMuestras ? Math.round((p.sumaEma / p.nMuestras) * 100) + '%' : '—';
+      var charla = p.hablandoAcumMs > 45000
+        ? ', conversó ~' + Math.max(1, Math.round(p.hablandoAcumMs / 60000)) + ' min'
+        : '';
       lineas.push('• ' + (p.nombre || 'Sin registrar') + ': atención ' + atencion +
-        ', llamados ' + (p.llamados || 0) +
+        ', llamados ' + (p.llamados || 0) + charla +
         (p.paraSupervisor ? ' — REVISAR CON SUPERVISOR' : ''));
     });
     lineas.push('', modo === 'camara'
@@ -511,6 +546,7 @@
             nombre: p.nombre,
             atencion: p.nMuestras ? Math.round((p.sumaEma / p.nMuestras) * 100) : null,
             llamados: p.llamados,
+            conversaMs: p.hablandoAcumMs || 0,
             paraSupervisor: p.paraSupervisor,
             respuestas: p.respuestas
           };
@@ -537,6 +573,23 @@
     });
     $('btn-modo-camara').addEventListener('click', function () { iniciarSesion('camara'); });
     $('btn-modo-sim').addEventListener('click', function () { iniciarSesion('simulacion'); });
+
+    // La prueba del micrófono ANTES de empezar: la primera sesión real de Joan
+    // se quedó sin voz y nadie le dijo por qué. Aquí se ve el nivel en vivo y,
+    // si falla, la explicación en español de qué arreglar.
+    $('btn-probar-mic').addEventListener('click', function () {
+      var boton = $('btn-probar-mic');
+      var res = $('resultado-mic');
+      if (window.Vera.modoRapido) { res.textContent = 'El modo rápido (?rapido=1) no usa audio.'; return; }
+      boton.disabled = true; // dos escuchas encimadas se pisan entre sí
+      res.textContent = 'Di algo, te escucho unos segundos…';
+      window.Vera.escuchar(5, res).then(function (oido) {
+        boton.disabled = false;
+        res.textContent = oido
+          ? '✔ Te escuché: “' + oido + '”. El micrófono funciona.'
+          : window.Vera.explicarErrorVoz(window.Vera.ultimoErrorVoz);
+      });
+    });
 
     $('btn-empezar-registro').addEventListener('click', function () {
       if (fase === 'deteccion') registro();
@@ -624,8 +677,13 @@
       if (ev.key === 'Enter') entregarRespuesta();
     });
     $('btn-responder-voz').addEventListener('click', function () {
+      $('respuesta-aviso').textContent = '';
       window.Vera.escuchar(9).then(function (oido) {
-        if (oido && resolverRespuesta) resolverRespuesta(oido.trim());
+        if (oido && resolverRespuesta) { resolverRespuesta(oido.trim()); return; }
+        var err = window.Vera.ultimoErrorVoz;
+        if (resolverRespuesta && err !== 'aborted') {
+          $('respuesta-aviso').textContent = window.Vera.explicarErrorVoz(err);
+        }
       });
     });
     $('btn-sin-respuesta').addEventListener('click', function () {

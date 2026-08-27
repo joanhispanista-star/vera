@@ -95,6 +95,11 @@ El contenido de fábrica es una inducción real para asesores de cobranza
 - **Verdad**: detección de caras y atención en tiempo real, local y gratis;
   nombres por rostro durante la sesión; llamados por nombre; preguntas con
   evaluación por palabras clave; acta imprimible/WhatsApp.
+- **Detecta a quien conversa durante el dictado** por el movimiento de la boca
+  en cámara (local, sin audio): baja su atención, Vera lo regaña por nombre y
+  el acta reporta los minutos de conversa. Responder una pregunta de Vera NO
+  cuenta — solo se mide mientras ella dicta. Nació de la queja real de Joan:
+  "85% de atención pero me la pasé hablando".
 - **La atención es un ESTIMADO** por postura de cabeza y apertura de ojos.
   El acta lo dice explícitamente. Las decisiones sobre una persona las toma
   un humano, nunca la plataforma.
@@ -107,6 +112,23 @@ El contenido de fábrica es una inducción real para asesores de cobranza
   la nube; un avatar hiperrealista requiere HeyGen o similar; la voz por
   teléfono requiere Vapi. Todo eso cuesta dólares por mes — no se construye
   antes del primer contrato.
+
+## Si el micrófono no funciona
+
+En la pantalla de consentimiento está el botón **"🎤 Probar el micrófono"**:
+muestra el nivel en vivo (las barritas se mueven cuando hablas) y, si algo
+falla, la causa en español. Las tres causas típicas:
+
+1. **El navegador lo tiene bloqueado**: toca el candado junto a la dirección,
+   permite el micrófono y recarga.
+2. **Edge**: su dictado por voz falla con error "network" en muchos equipos.
+   Usa Chrome para las sesiones con voz (las voces de Edge son más bonitas,
+   pero el oído de Chrome es el confiable).
+3. **Micrófono equivocado**: si las barritas no se mueven, el navegador está
+   escuchando otro micrófono — se cambia en la configuración del sitio.
+
+Todo lo que se responde por voz se puede responder por teclado: la sesión
+nunca se bloquea por el micrófono.
 
 ## Lo legal (Colombia)
 

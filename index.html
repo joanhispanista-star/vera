@@ -57,6 +57,10 @@
         <p><strong>Ley 1581 de 2012 (habeas data):</strong> antes de empezar, los asistentes deben ser
         informados de esto y autorizar el uso de la cámara y el micrófono. Léales este aviso o proyéctelo.</p>
       </div>
+      <div class="prueba-mic">
+        <button id="btn-probar-mic" class="btn btn-secundario">🎤 Probar el micrófono</button>
+        <span id="resultado-mic" class="resultado-mic"></span>
+      </div>
       <label class="fila-consentimiento">
         <input type="checkbox" id="chk-consentimiento">
         <span>Informé a los asistentes y autorizaron el uso de la cámara y el micrófono en esta sesión.</span>
@@ -104,6 +108,7 @@
         <!-- Zona de respuesta a preguntas -->
         <div id="zona-respuesta" class="zona-entrada oculto">
           <div id="respuesta-para" class="respuesta-para"></div>
+          <div id="respuesta-aviso" class="respuesta-aviso"></div>
           <div class="fila-entrada">
             <input type="text" id="txt-respuesta" placeholder="O escribe la respuesta aquí" autocomplete="off">
             <button id="btn-enviar-respuesta" class="btn btn-primario">Responder</button>
