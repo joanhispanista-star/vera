@@ -551,6 +551,10 @@
       .then(function () {
         window.Vera.mirar(null);
         if (!terminada) fase = 'modulo';
+        // Quien llegó durante una pregunta o la ronda final se anuncia aquí:
+        // la cola solo se vaciaba entre puntos de módulo, así que en la ronda
+        // final un rezagado quedaba mudo y sin nombre hasta el acta.
+        return procesarAlertas();
       });
   }
 
@@ -630,8 +634,9 @@
       ir('p-acta');
       return;
     }
-    guardarActa(personas, duracionMin);
+    var guardada = guardarActa(personas, duracionMin);
     pintarActa(sesionGuardada);
+    $('aviso-acta').classList.toggle('oculto', guardada);
     ir('p-acta');
   }
 
@@ -641,6 +646,10 @@
      decir algo distinto de lo que se midió ese día. */
   function pintarActa(acta, aviso) {
     actaEnPantalla = acta;
+    // "No se pudo guardar" es un hecho de UN acta, no un letrero pegado a la
+    // pantalla: sin este borrón, un acta bien guardada del historial saldría
+    // con la advertencia de otra.
+    $('aviso-acta').classList.add('oculto');
     var fecha = new Date(acta.fecha);
     $('acta-titulo').textContent = 'Acta — ' + acta.titulo;
     // La marca de rescatada viaja en el acta: se ve igual el día que se
@@ -779,14 +788,11 @@
   function guardarActa(personas, duracionMin) {
     sesionGuardada = instantanea(personas, duracionMin);
     // Si el almacenamiento está lleno, el acta se perdería EN SILENCIO — y la
-    // promesa del producto es que al final queda la evidencia. Se avisa y se
-    // ofrece descargarla; y el borrador NO se borra, que es el otro salvavidas.
-    if (window.Historial.guardar(sesionGuardada)) {
-      window.Historial.borrarBorrador();
-      $('aviso-acta').classList.add('oculto');
-    } else {
-      $('aviso-acta').classList.remove('oculto');
-    }
+    // promesa del producto es que al final queda la evidencia. El borrador NO
+    // se borra, que es el otro salvavidas; quien pinta decide qué avisar.
+    var guardada = window.Historial.guardar(sesionGuardada);
+    if (guardada) window.Historial.borrarBorrador();
+    return guardada;
   }
 
   // ── Constancias ─────────────────────────────────────────
@@ -885,15 +891,18 @@
       if (!acta) return;
       acta.id = 's' + Date.now(); // id propio: es un acta nueva en el historial
       acta.rescatada = true;      // la marca viaja con el acta, no solo en pantalla
-      if (!window.Historial.guardar(acta)) {
-        $('rescate-texto').textContent = 'No se pudo guardar el acta rescatada: el almacenamiento está lleno.';
-        return;
+      // El borrador es la ÚNICA copia de esta acta: su sesión ya se cayó una
+      // vez. Si el historial no la admite, borrarlo la perdería para siempre.
+      // Se conserva, se muestra igual y se ofrece descargarla.
+      var guardada = window.Historial.guardar(acta);
+      if (guardada) {
+        window.Historial.borrarBorrador();
+        $('aviso-rescate').classList.add('oculto');
       }
-      window.Historial.borrarBorrador();
-      $('aviso-rescate').classList.add('oculto');
       sesionGuardada = acta;
       fase = 'acta';
-      pintarActa(acta);
+      pintarActa(acta, guardada ? null : 'NO quedó guardada en el historial');
+      $('aviso-acta').classList.toggle('oculto', guardada);
       ir('p-acta');
     });
     $('btn-descartar-rescate').addEventListener('click', function () {
@@ -1282,8 +1291,19 @@
     });
 
     $('btn-csv').addEventListener('click', function () {
-      if (!window.Historial.listar().length) { alert('Todavía no hay capacitaciones que exportar.'); return; }
-      window.Historial.descargarCsv(!$('chk-incluir-demos').checked);
+      var soloReales = !$('chk-incluir-demos').checked;
+      // Se cuenta lo que SE VA A EXPORTAR, no todo: con el historial lleno de
+      // demostraciones se descargaba un archivo con solo los encabezados.
+      var cuantas = window.Historial.listar().filter(function (s) {
+        return !soloReales || s.modo === 'camara';
+      }).length;
+      if (!cuantas) {
+        alert(soloReales
+          ? 'No hay capacitaciones reales que exportar. Marque "Incluir demostraciones" si quiere exportar las de prueba.'
+          : 'Todavía no hay capacitaciones que exportar.');
+        return;
+      }
+      window.Historial.descargarCsv(soloReales);
     });
     $('btn-respaldo').addEventListener('click', function () {
       if (!window.Historial.listar().length) { alert('Todavía no hay historial que respaldar.'); return; }
