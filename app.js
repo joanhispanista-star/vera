@@ -26,6 +26,10 @@
   var grupoSesion = '';         // grupo o sede, para que el acta sirva de evidencia
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
+  var dudas = [];               // puntos que el grupo pidió repetir ("No entendí")
+  var dictado_ = { modulos: 0, puntos: 0 };  // lo que Vera alcanzó a dictar de verdad
+  var puntoEnCurso = null;      // { modulo, tituloModulo, indicePunto, texto }
+  var repetirPedido = false;    // el grupo pidió repetir el punto que suena
   var pausada = false;          // descanso: la sesión se detiene sin cerrar el acta
   var resolverPausa = null;
   var msPausados = 0;           // no se le cobra al acta el tiempo del descanso
@@ -76,14 +80,22 @@
   // Honestidad: en modo demo NO hay cámara, y Vera no puede afirmar que ve por ella.
   function textoSaludo() {
     var comun = '. Soy Vera, la capacitadora virtual. Sí: soy una inteligencia artificial, ';
-    var cierre = 'Hoy vamos a hacer la inducción completa, yo voy a estar pendiente de cada uno, ' +
-      'y al final entrego un acta. ';
-    if (modo === 'camara') {
-      return saludoPorHora() + comun + 'y sí, los estoy viendo por la cámara. ' + cierre +
-        'Así que acomódense, guarden el celular, y empecemos por conocernos.';
+    if (modo !== 'camara') {
+      return saludoPorHora() + comun + 'y esta es una sala simulada, para mostrar cómo trabajo. ' +
+        'Hoy vamos a hacer la inducción completa, yo voy a estar pendiente de cada uno, ' +
+        'y al final entrego un acta. Empecemos por conocernos.';
     }
-    return saludoPorHora() + comun + 'y esta es una sala simulada, para mostrar cómo trabajo. ' +
-      cierre + 'Empecemos por conocernos.';
+    // Con rotación alta, media sala real es UNA persona un martes cualquiera:
+    // decirle "acomódense, guarden el celular" delata que se le habla a un grupo.
+    if (window.Motor.presentes().length === 1) {
+      return saludoPorHora() + comun + 'y sí, te estoy viendo por la cámara. ' +
+        'Hoy vamos a hacer tu inducción completa, voy a estar pendiente de ti, ' +
+        'y al final queda tu constancia. Así que ponte cómodo, guarda el celular, ' +
+        'y empecemos por conocernos.';
+    }
+    return saludoPorHora() + comun + 'y sí, los estoy viendo por la cámara. ' +
+      'Hoy vamos a hacer la inducción completa, yo voy a estar pendiente de cada uno, ' +
+      'y al final entrego un acta. Así que acomódense, guarden el celular, y empecemos por conocernos.';
   }
 
   function fraseLlamado(p, motivo) {
@@ -347,6 +359,35 @@
     });
   }
 
+  /* "No entendí": lo más valioso que Vera puede recoger y que ningún
+     capacitador humano entrega. Nadie levanta la mano delante del jefe, así
+     que el botón lo oprime el supervisor (o el propio asistente al pasar) y
+     NO se asocia a ninguna persona: es una duda del grupo, no una falta de
+     alguien. Vera repite el punto en el acto, y el acta le dice al gerente
+     QUÉ PARTE DE SU CONTENIDO no se entiende — sesión tras sesión. */
+  function marcarDuda() {
+    if (!puntoEnCurso || terminada) return;
+    var yaMarcado = dudas.some(function (d) {
+      return d.modulo === puntoEnCurso.modulo && d.indicePunto === puntoEnCurso.indicePunto;
+    });
+    if (yaMarcado) {
+      var previo = dudas.filter(function (d) {
+        return d.modulo === puntoEnCurso.modulo && d.indicePunto === puntoEnCurso.indicePunto;
+      })[0];
+      previo.veces += 1;
+    } else {
+      dudas.push({
+        modulo: puntoEnCurso.modulo,
+        tituloModulo: puntoEnCurso.tituloModulo,
+        indicePunto: puntoEnCurso.indicePunto,
+        texto: puntoEnCurso.texto,
+        veces: 1
+      });
+    }
+    repetirPedido = true;
+    $('barra-fase').textContent = 'Anotado: Vera repite este punto. Queda en el acta como duda del grupo.';
+  }
+
   /* Dice un punto del temario respetando la pausa: si el descanso cae a mitad
      de la frase, al volver se repite el punto entero — es lo que haría un
      capacitador humano, y evita que alguien se pierda medio tema. */
@@ -357,17 +398,26 @@
         if (pausada && !terminada) {
           return esperarSiPausada().then(function () { return decirPunto(texto); });
         }
+        // Alguien pidió que se repitiera: se repite entero, como haría
+        // cualquier profesor, y sin señalar a quien preguntó.
+        if (repetirPedido && !terminada) {
+          repetirPedido = false;
+          return window.Vera.decir('Claro, lo repito.')
+            .then(function () { return decirPunto(texto); });
+        }
       });
   }
 
   function dictado() {
     fase = 'modulo';
     $('btn-pausar').classList.remove('oculto');
+    $('btn-duda').classList.remove('oculto');
     var cadena = Promise.resolve();
 
     contenido.modulos.forEach(function (m, i) {
       cadena = cadena.then(function () {
         if (terminada) return;
+        dictado_.modulos = i + 1;
         pintarModulo(m, i);
         // Borrón al arrancar cada módulo: responder la pregunta anterior por
         // voz también mueve la boca y baja la media — ese arrastre no puede
@@ -385,6 +435,10 @@
             window.Motor.marcador('m' + i + 'p' + j);
             var lis = $('diapositiva-puntos').children;
             for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('actual', k === j);
+            // Se anota qué se alcanzó a dictar: un acta de sesión cortada no
+            // puede dar a entender que se vio el curso completo.
+            puntoEnCurso = { modulo: i, tituloModulo: m.titulo, indicePunto: j, texto: punto };
+            dictado_.puntos += 1;
             return decirPunto(punto);
           });
         });
@@ -399,6 +453,9 @@
     cadena.then(function () {
       if (terminada) return;
       return rondaFinal();
+    }).then(function () {
+      if (terminada) return;
+      return rondaDescargos();
     }).then(function () {
       if (terminada) return;
       return window.Vera.decir(
@@ -443,6 +500,88 @@
     });
 
     return cadena;
+  }
+
+  /* Descargos: el acta dice "se le llamó la atención 2 veces" sobre alguien
+     que nunca fue oído — y a lo mejor estaba tomando apuntes o se le cayó el
+     esfero. El Código Sustantivo del Trabajo exige oír al trabajador antes de
+     sancionarlo, y esta acta puede terminar en una carpeta de personal. Así
+     que a quien quedó señalado se le pregunta, por su nombre, si quiere dejar
+     una aclaración. Decir "prefiero no decir nada" es una respuesta válida y
+     no cuenta en contra. */
+  function rondaDescargos() {
+    var señalados = window.Motor.presentes().filter(function (p) {
+      return p.llamados > 0 || p.paraSupervisor || p.hablandoAcumMs > 45000;
+    });
+    if (!señalados.length) return Promise.resolve();
+
+    fase = 'descargos';
+    var cadena = window.Vera.decir(
+      'Una última cosa, y es de justicia. A algunos les llamé la atención durante la sesión. ' +
+      'Puede que tuvieran una buena razón y yo no la conozca: si quieren dejar una aclaración ' +
+      'escrita en el acta, este es el momento.'
+    );
+
+    señalados.forEach(function (p, idx) {
+      cadena = cadena.then(esperarSiPausada).then(function () {
+        if (terminada) return;
+        window.Vera.mirar(p.x);
+        $('barra-fase').textContent = 'Descargos · ' + (idx + 1) + ' de ' + señalados.length;
+        return window.Vera.decir(
+          p.nombre + ', te llamé la atención ' + p.llamados +
+          (p.llamados === 1 ? ' vez' : ' veces') + '. ¿Quieres aclarar algo para el acta?'
+        ).then(function () {
+          if (terminada) return null;
+          if (modo === 'simulacion') {
+            // En el demo, uno se defiende: es la escena que le muestra al
+            // cliente que el acta no condena sin oír.
+            var texto = idx === 0 ? 'Estaba anotando en el cuaderno lo que usted explicaba.' : null;
+            if (texto) window.Simulacion.hablar(p, 1800);
+            $('barra-fase').textContent = texto
+              ? p.nombre + ' aclara: “' + texto + '”'
+              : p.nombre + ' prefiere no decir nada.';
+            return pausa(window.Vera.modoRapido ? 400 : 1600).then(function () { return texto; });
+          }
+          return pedirDescargo(p);
+        }).then(function (texto) {
+          if (terminada) return;
+          if (texto && texto.trim()) {
+            p.descargo = texto.trim();
+            return window.Vera.decir('Queda anotado en el acta, ' + p.nombre + '. Gracias.');
+          }
+          return window.Vera.decir('Está bien, ' + p.nombre + '. No pasa nada.');
+        }).then(function () { window.Vera.mirar(null); });
+      });
+    });
+
+    return cadena;
+  }
+
+  function pedirDescargo(p) {
+    return new Promise(function (resolver) {
+      var resuelto = false;
+      var entregar = function (texto) {
+        if (resuelto) return;
+        resuelto = true;
+        $('zona-respuesta').classList.add('oculto');
+        resolverRespuesta = null;
+        window.Vera.detenerEscucha();
+        resolver(texto);
+      };
+      resolverRespuesta = entregar;
+      $('respuesta-para').textContent = 'Aclaración de ' + p.nombre + ' (opcional) — por voz o con el teclado.';
+      $('respuesta-aviso').textContent = '';
+      $('txt-respuesta').value = '';
+      $('zona-respuesta').classList.remove('oculto');
+      window.Vera.escuchar(9).then(function (oido) {
+        if (resuelto) return;
+        if (oido && oido.trim().length > 1) { entregar(oido.trim()); return; }
+        var err = window.Vera.ultimoErrorVoz;
+        if (!window.Vera.modoRapido && err !== 'aborted') {
+          $('respuesta-aviso').textContent = window.Vera.explicarErrorVoz(err);
+        }
+      });
+    });
   }
 
   // ── Preguntas ───────────────────────────────────────────
@@ -621,6 +760,7 @@
     if (!inicioSesion) inicioSesion = Date.now(); // sesión cortada antes del registro
     if (pausada) msPausados += Date.now() - pausaDesde; // se terminó estando en pausa
     $('btn-pausar').classList.add('oculto');
+    $('btn-duda').classList.add('oculto');
     var duracionMin = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados) / 60000));
     // Una sesión cortada antes de que llegara alguien no es evidencia de nada
     // y solo ensuciaría el historial con filas vacías.
@@ -699,16 +839,55 @@
         obs = (obs === 'Sin novedad' ? '' : obs + ' · ') + 'Conversó ~' + minCharla + ' min durante el dictado';
         if (claseObs === 'bien') claseObs = '';
       }
+      // La aclaración del asistente va en la misma casilla que la observación
+      // que la motivó: quien lee el acta ve la acusación y la respuesta juntas.
+      if (p.descargo) {
+        obs += ' · <i>Aclara: “' + escaparHtml(p.descargo) + '”</i>';
+      }
       return '<tr>' +
         '<td>' + escaparHtml(p.nombre || 'Sin registrar') + '</td>' +
         '<td>' + presencia + '</td>' +
         '<td>' + atencion + '</td>' +
         '<td>' + (p.llamados || 0) + '</td>' +
         '<td>' + respuestas + '</td>' +
-        '<td class="' + claseObs + '">' + escaparHtml(obs) + '</td>' +
+        '<td class="' + claseObs + '">' + obs + '</td>' +
         '</tr>';
     });
     $('tabla-acta').querySelector('tbody').innerHTML = filas.join('');
+    // Lo que de verdad se alcanzó a dictar. Un acta de sesión cortada no puede
+    // dar a entender que el grupo vio el curso completo.
+    var cob = acta.cobertura;
+    if (cob && cob.modulosTotal && cob.modulosDictados < cob.modulosTotal) {
+      $('acta-datos').textContent += ' · se dictaron ' + cob.modulosDictados +
+        ' de ' + cob.modulosTotal + ' módulos';
+    }
+
+    // Las dudas del grupo: el dato que ningún capacitador humano entrega.
+    var lasDudas = acta.dudas || [];
+    if (lasDudas.length) {
+      $('acta-dudas').innerHTML = '<h3>Lo que el grupo pidió repetir</h3><ul>' +
+        lasDudas.map(function (d) {
+          return '<li><b>' + escaparHtml(d.tituloModulo) + '</b> — “' +
+            escaparHtml(String(d.texto).slice(0, 120)) +
+            (String(d.texto).length > 120 ? '…' : '') + '”' +
+            (d.veces > 1 ? ' (' + d.veces + ' veces)' : '') + '</li>';
+        }).join('') + '</ul>' +
+        '<div class="pie-dudas">Son dudas del grupo, sin nombres: nadie queda señalado por preguntar. ' +
+        'Si un punto se repite sesión tras sesión, el problema no es la gente — es cómo está escrito.</div>';
+      $('acta-dudas').classList.remove('oculto');
+    } else {
+      $('acta-dudas').classList.add('oculto');
+    }
+
+    // El folio se calcula asíncrono: se añade cuando llegue, y si el navegador
+    // no puede calcularlo (fuera de HTTPS) simplemente no se promete ninguno.
+    window.Historial.calcularFolio(acta).then(function (folio) {
+      if (folio && actaEnPantalla === acta) {
+        $('acta-datos').textContent += ' · folio ' + folio;
+        acta.folio = folio;
+      }
+    });
+
     var leyenda = ' Respuestas: ✔ correcta · ✘ incorrecta · • respondió (sin calificar) · – sin respuesta.';
     $('acta-nota').textContent = (acta.modo === 'camara'
       ? 'La atención se estima por postura de cabeza y apertura de ojos frente a la cámara. ' +
@@ -754,6 +933,8 @@
       modo: modo,
       duracionMin: duracionMin,
       grupo: grupoSesion,
+      dudas: dudas.slice(),
+      cobertura: { modulosDictados: dictado_.modulos, modulosTotal: contenido.modulos.length },
       personas: personas.map(function (p) {
         return {
           nombre: p.nombre,
@@ -765,6 +946,7 @@
           // Se guardan para que un acta reabierta diga exactamente lo mismo
           // que dijo el día que se generó, sin recalcular con datos que ya no existen.
           cerroAtenta: !!(p.presente && p.ema > 0.7),
+          descargo: p.descargo || '',
           paraSupervisor: p.paraSupervisor,
           respuestas: p.respuestas
         };
@@ -856,6 +1038,10 @@
         'es un indicio de participación, no una calificación de desempeño.<br>' +
         'Documento generado automáticamente el ' +
         new Date().toLocaleDateString('es-CO') + ' · asistente ' + (constanciaIndice + 1) + ' de ' + total +
+        (constanciaSesion.folio
+          ? '<br>Folio del acta: <b>' + constanciaSesion.folio + '</b> — identifica esta acta y permite ' +
+            'comprobar que corresponde al registro guardado. No es una firma digital.'
+          : '') +
       '</div>';
   }
 
@@ -864,6 +1050,13 @@
     constanciaSesion = sesion;
     constanciaIndice = 0;
     pintarConstancia();
+    if (!sesion.folio) {
+      window.Historial.calcularFolio(sesion).then(function (folio) {
+        if (!folio) return;
+        sesion.folio = folio;
+        if (constanciaSesion === sesion) pintarConstancia();
+      });
+    }
     ir('p-constancia');
   }
 
@@ -911,6 +1104,27 @@
     });
   }
 
+  /* Lo primero que ve el supervisor al abrir la app: a quién se le venció la
+     capacitación. Sin esto la plataforma se queda muda después de capacitar a
+     todo el mundo, que es justo cuando el cliente se pregunta para qué paga. */
+  function pintarAvisoRecertificacion() {
+    var pendientes = window.Historial.recertificaciones().filter(function (r) {
+      return r.estado !== 'al-dia';
+    });
+    if (!pendientes.length) {
+      $('aviso-recertificar').classList.add('oculto');
+      return;
+    }
+    var vencidas = pendientes.filter(function (r) { return r.estado === 'vencido'; }).length;
+    var porVencer = pendientes.length - vencidas;
+    var partes = [];
+    if (vencidas) partes.push(vencidas + (vencidas === 1 ? ' capacitación vencida' : ' capacitaciones vencidas'));
+    if (porVencer) partes.push(porVencer + (porVencer === 1 ? ' por vencer' : ' por vencer'));
+    $('recertificar-texto').textContent = '⏰ Hay ' + partes.join(' y ') +
+      ' (vigencia: ' + window.Historial.vigenciaMeses() + ' meses).';
+    $('aviso-recertificar').classList.remove('oculto');
+  }
+
   // ── Vista del historial ─────────────────────────────────
   var vistaHistorial = 'personas';
 
@@ -953,6 +1167,42 @@
           '<div class="registro-linea"><span></span><span class="registro-acciones">' +
             '<button class="btn btn-mini" data-borrar-persona="' + escaparHtml(p.nombre) + '">Borrar sus datos</button>' +
           '</span></div>' +
+          '</div>';
+      }).join('');
+      return;
+    }
+
+    if (vistaHistorial === 'vigencia') {
+      var meses = window.Historial.vigenciaMeses();
+      var lista = window.Historial.recertificaciones().filter(function (r) {
+        return !filtro || r.nombre.toLowerCase().indexOf(filtro) >= 0 ||
+          r.curso.toLowerCase().indexOf(filtro) >= 0;
+      });
+      var encabezado = '<div class="fila-buscar"><label class="chk-inline">' +
+        'Una capacitación vale por <input type="number" id="txt-vigencia" min="1" max="120" value="' + meses +
+        '" style="width:70px"> meses</label>' +
+        '<span class="registro-meta">Se cuenta desde la última vez que cada persona tomó ese curso. ' +
+        'Solo cuentan las sesiones con cámara.</span></div>';
+      if (!lista.length) {
+        cuerpo.innerHTML = encabezado + '<div class="vacio-historial">' + (filtro
+          ? 'Nadie coincide con esa búsqueda.'
+          : 'Todavía no hay capacitaciones reales registradas.<br>' +
+            'Las sesiones con cámara aparecen aquí con su fecha de vencimiento.') + '</div>';
+        return;
+      }
+      var rotulo = { 'vencido': 'VENCIDA', 'por-vencer': 'POR VENCER', 'al-dia': 'al día' };
+      cuerpo.innerHTML = encabezado + lista.map(function (r) {
+        var cuando = r.diasRestantes < 0
+          ? 'venció hace ' + Math.abs(r.diasRestantes) + (Math.abs(r.diasRestantes) === 1 ? ' día' : ' días')
+          : 'vence en ' + r.diasRestantes + (r.diasRestantes === 1 ? ' día' : ' días');
+        return '<div class="registro">' +
+          '<div class="registro-cabeza">' +
+            '<span class="registro-nombre">' + escaparHtml(r.nombre) +
+              ' <span class="etiqueta-demo etiqueta-' + r.estado + '">' + rotulo[r.estado] + '</span></span>' +
+            '<span class="registro-meta">' + cuando + '</span>' +
+          '</div>' +
+          '<div class="registro-linea"><span>' + escaparHtml(r.curso) +
+            ' — última vez el ' + window.Historial.fechaLegible(r.ultima) + '</span></div>' +
           '</div>';
       }).join('');
       return;
@@ -1004,6 +1254,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     pintarResumen();
     ofrecerRescate();
+    pintarAvisoRecertificacion();
 
     $('btn-comenzar').addEventListener('click', function () { ir('p-consentimiento'); });
 
@@ -1078,6 +1329,7 @@
 
     $('btn-saltar').addEventListener('click', function () { window.Vera.callar(); });
     $('btn-pausar').addEventListener('click', alternarPausa);
+    $('btn-duda').addEventListener('click', marcarDuda);
 
     // Proyectar la pantalla en la sala no puede significar exhibir el
     // porcentaje de atención de cada quien delante de sus compañeros.
@@ -1237,8 +1489,27 @@
       pintarHistorial();
       ir('p-historial');
     });
-    $('btn-cerrar-historial').addEventListener('click', function () { ir('p-inicio'); });
+    $('btn-cerrar-historial').addEventListener('click', function () {
+      pintarAvisoRecertificacion(); // pudo cambiar la vigencia estando adentro
+      ir('p-inicio');
+    });
+    $('btn-ver-recertificar').addEventListener('click', function () {
+      vistaHistorial = 'vigencia';
+      document.querySelectorAll('.pestana').forEach(function (b) {
+        b.classList.toggle('activa', b.dataset.vista === 'vigencia');
+      });
+      pintarHistorial();
+      ir('p-historial');
+    });
     $('txt-buscar').addEventListener('input', pintarHistorial);
+    // El campo de vigencia se recrea en cada repintado: se escucha por delegación.
+    $('historial-cuerpo').addEventListener('change', function (ev) {
+      if (ev.target && ev.target.id === 'txt-vigencia') {
+        window.Historial.fijarVigencia(ev.target.value);
+        pintarHistorial();
+        pintarAvisoRecertificacion();
+      }
+    });
     $('chk-incluir-demos').addEventListener('change', pintarHistorial);
     document.querySelectorAll('.pestana').forEach(function (boton) {
       boton.addEventListener('click', function () {

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repaso — Vera</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  /* Pensada para el celular del asesor, no para la sala: una columna,
+     letra grande y nada que dependa de cámara ni micrófono. */
+  .repaso { max-width: 640px; margin: 0 auto; padding: 20px 18px 60px; }
+  .repaso h1 { font-size: 24px; margin-bottom: 6px; }
+  .repaso .sub { color: var(--texto-suave); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+  .modulo {
+    background: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .modulo h2 { color: var(--acento); font-size: 18px; margin-bottom: 12px; }
+  .modulo ul { list-style: none; }
+  .modulo li {
+    padding: 9px 0 9px 20px;
+    position: relative;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--texto-suave);
+  }
+  .modulo li::before { content: "•"; position: absolute; left: 4px; color: var(--acento); }
+  .tarjeta-pregunta {
+    background: var(--fondo-suave);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .tarjeta-pregunta .p { font-weight: 600; margin-bottom: 10px; font-size: 15px; }
+  .tarjeta-pregunta .r {
+    color: var(--verde);
+    font-size: 15px;
+    line-height: 1.5;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--borde);
+  }
+  .selector-repaso { margin-bottom: 18px; }
+  .selector-repaso select {
+    width: 100%;
+    background: var(--fondo-suave);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">VERA <span>repaso</span></div>
+</header>
+
+<main class="repaso">
+  <h1>Repasa cuando quieras</h1>
+  <p class="sub">
+    Este es el mismo contenido que Vera dictó en la capacitación, para leerlo
+    con calma desde el celular. Toca una pregunta para ver la respuesta.
+  </p>
+
+  <div class="selector-repaso">
+    <select id="sel-curso-repaso"></select>
+  </div>
+
+  <div id="contenido-repaso"></div>
+
+  <p class="letra-menuda">
+    Página de repaso de Vera, la capacitadora virtual. No usa cámara ni micrófono
+    y no guarda nada de quien la lee.
+  </p>
+</main>
+
+<script src="contenido.js"></script>
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function escapar(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function pintar() {
+    var contenido = window.ContenidoLib.obtener();
+    $('contenido-repaso').innerHTML = contenido.modulos.map(function (m, i) {
+      var preguntas = (m.preguntas || []).map(function (q, j) {
+        var id = 'r' + i + '-' + j;
+        return '<div class="tarjeta-pregunta">' +
+          '<div class="p">' + escapar(q.texto) + '</div>' +
+          '<button class="btn btn-mini" data-ver="' + id + '">Ver la respuesta</button>' +
+          '<div class="r oculto" id="' + id + '">' + escapar(q.respuestaModelo || 'Sin respuesta modelo.') + '</div>' +
+          '</div>';
+      }).join('');
+      return '<div class="modulo"><h2>' + escapar(m.titulo) + '</h2><ul>' +
+        m.puntos.map(function (p) { return '<li>' + escapar(p) + '</li>'; }).join('') +
+        '</ul>' + preguntas + '</div>';
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var sel = $('sel-curso-repaso');
+    sel.innerHTML = window.ContenidoLib.listar().map(function (c) {
+      return '<option value="' + c.indice + '">' + c.titulo + '</option>';
+    }).join('');
+    sel.value = String(window.ContenidoLib.indiceActivo());
+    sel.addEventListener('change', function (ev) {
+      window.ContenidoLib.elegir(parseInt(ev.target.value, 10));
+      pintar();
+    });
+    // Un solo escucha para todas las respuestas: la lista se repinta entera.
+    $('contenido-repaso').addEventListener('click', function (ev) {
+      var boton = ev.target.closest('[data-ver]');
+      if (!boton) return;
+      var caja = $(boton.dataset.ver);
+      if (!caja) return;
+      var oculta = caja.classList.toggle('oculto');
+      boton.textContent = oculta ? 'Ver la respuesta' : 'Ocultar la respuesta';
+    });
+    pintar();
+  });
+})();
+</script>
+</body>
+</html>

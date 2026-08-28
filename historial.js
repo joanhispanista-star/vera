@@ -23,6 +23,14 @@
     }
   }
 
+  function leer(clave) {
+    try { return localStorage.getItem(clave); } catch (e) { return null; }
+  }
+
+  function escribir2(clave, valor) {
+    try { localStorage.setItem(clave, valor); return true; } catch (e) { return false; }
+  }
+
   function escribir(actas) {
     try {
       localStorage.setItem(CLAVE, JSON.stringify(actas));
@@ -44,6 +52,8 @@
       grupo: acta.grupo || '',
       dictadaPor: acta.dictadaPor || '',
       rescatada: !!acta.rescatada,
+      dudas: acta.dudas || [],
+      cobertura: acta.cobertura || null,
       personas: (acta.personas || []).map(function (p) {
         return {
           nombre: p.nombre || 'Sin registrar',
@@ -58,6 +68,9 @@
           // Sin esto, un acta reabierta perdía el "y volvió a concentrarse":
           // decía menos que el día que se generó, y siempre en contra.
           cerroAtenta: !!p.cerroAtenta,
+          // La aclaración del asistente es suya: viaja con el acta a donde
+          // vaya el acta, o el derecho a ser oído sería solo de la pantalla.
+          descargo: p.descargo || '',
           paraSupervisor: !!p.paraSupervisor,
           respuestas: p.respuestas || []
         };
@@ -133,6 +146,96 @@
     }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
   }
 
+  /* Vigencia de la capacitación. Es la razón por la que un cliente NO cancela
+     a los dos meses: capacita a sus 60 asesores y la plataforma se queda sin
+     nada que hacer… hasta que empieza a avisar quién debe recertificarse.
+     También es real desde el cumplimiento: una capacitación en Ley 2300 de
+     hace tres años no prueba gran cosa ante una auditoría de hoy. */
+  var CLAVE_VIGENCIA = 'vera.vigencia-meses';
+  var VIGENCIA_POR_DEFECTO = 12;
+  var DIAS_AVISO = 30;
+
+  function vigenciaMeses() {
+    var v = parseInt(leer(CLAVE_VIGENCIA), 10);
+    return (v > 0 && v <= 120) ? v : VIGENCIA_POR_DEFECTO;
+  }
+
+  function fijarVigencia(meses) {
+    var n = parseInt(meses, 10);
+    if (n > 0 && n <= 120) escribir2(CLAVE_VIGENCIA, String(n));
+  }
+
+  /* Estado de cada persona en cada curso que tomó: al día, por vencer o
+     vencido. Solo cuentan las sesiones reales — una demostración no
+     certifica a nadie. */
+  function recertificaciones() {
+    var meses = vigenciaMeses();
+    var ahora = Date.now();
+    var ultimas = {}; // clave: persona|curso
+    listar().forEach(function (s) {
+      if (s.modo !== 'camara') return;
+      var cuando = new Date(s.fecha).getTime();
+      if (isNaN(cuando)) return;
+      s.personas.forEach(function (p) {
+        if (esNombreGenerico(p.nombre)) return;
+        var clave = p.nombre.toLowerCase().trim() + '|' + s.titulo;
+        // listar() ya viene de la más reciente a la más vieja, pero no se
+        // asume: se compara siempre y se conserva la última de verdad.
+        if (!ultimas[clave] || cuando > ultimas[clave].cuando) {
+          ultimas[clave] = { nombre: p.nombre, curso: s.titulo, cuando: cuando, id: s.id };
+        }
+      });
+    });
+
+    var msVigencia = meses * 30.44 * 24 * 3600 * 1000;
+    return Object.keys(ultimas).map(function (k) {
+      var r = ultimas[k];
+      var vence = r.cuando + msVigencia;
+      var diasRestantes = Math.round((vence - ahora) / (24 * 3600 * 1000));
+      return {
+        nombre: r.nombre,
+        curso: r.curso,
+        ultima: new Date(r.cuando).toISOString(),
+        diasRestantes: diasRestantes,
+        estado: diasRestantes < 0 ? 'vencido' : (diasRestantes <= DIAS_AVISO ? 'por-vencer' : 'al-dia')
+      };
+    }).sort(function (a, b) { return a.diasRestantes - b.diasRestantes; });
+  }
+
+  /* Folio del acta: huella SHA-256 de su contenido, que el navegador calcula
+     gratis y sin red (crypto.subtle). Sirve para lo que promete y nada más:
+     identificar un acta de forma única y permitir comprobar que el papel
+     impreso corresponde al registro guardado. NO es una firma digital ni
+     prueba quién la emitió — decir lo contrario sería mentir en un documento
+     que puede terminar en una carpeta de personal. */
+  function calcularFolio(acta) {
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder) {
+      return Promise.resolve(null); // fuera de HTTPS/localhost no existe
+    }
+    // Se firma el CONTENIDO, no el envoltorio: el folio no puede cambiar solo
+    // porque el acta se reabra o se le asigne otro id al importarla.
+    var esencia = {
+      fecha: acta.fecha,
+      titulo: acta.titulo,
+      modo: acta.modo,
+      duracionMin: acta.duracionMin,
+      grupo: acta.grupo || '',
+      personas: (acta.personas || []).map(function (p) {
+        return [p.nombre, p.atencion, p.llamados, p.conversaMs, p.ausenteMs,
+                p.paraSupervisor ? 1 : 0, (p.respuestas || []).length];
+      })
+    };
+    var datos = new TextEncoder().encode(JSON.stringify(esencia));
+    return crypto.subtle.digest('SHA-256', datos).then(function (buffer) {
+      var bytes = new Uint8Array(buffer);
+      var hex = '';
+      for (var i = 0; i < 6; i++) {
+        hex += ('0' + bytes[i].toString(16)).slice(-2);
+      }
+      return hex.toUpperCase().replace(/(.{4})(?=.)/g, '$1-'); // ABCD-EF12-3456
+    }).catch(function () { return null; });
+  }
+
   // ── Exportar ────────────────────────────────────────────
   function escaparCampo(valor) {
     var texto = String(valor === null || valor === undefined ? '' : valor);
@@ -153,7 +256,7 @@
   function csv(soloReales) {
     var filas = [['Fecha', 'Curso', 'Modo', 'Duración (min)', 'Grupo', 'Asistente', 'Presencia',
                   'Atención (%)', 'Llamados', 'Conversa (min)', 'Aciertos', 'Preguntas calificables',
-                  'Sin calificar', 'Revisar']];
+                  'Sin calificar', 'Aclaración del asistente', 'Revisar']];
     listar().forEach(function (s) {
       if (soloReales && s.modo !== 'camara') return;
       s.personas.forEach(function (p) {
@@ -165,7 +268,7 @@
           p.atencion === null ? '' : p.atencion,
           p.llamados,
           p.conversaMs > 45000 ? Math.round(p.conversaMs / 60000) : 0,
-          ac.bien, ac.total, ac.sinCalificar,
+          ac.bien, ac.total, ac.sinCalificar, p.descargo,
           p.paraSupervisor ? 'SI' : ''
         ]);
       });
@@ -318,6 +421,10 @@
     aciertos: aciertos,
     fechaLegible: fechaLegible,
     textoPresencia: textoPresencia,
+    vigenciaMeses: vigenciaMeses,
+    fijarVigencia: fijarVigencia,
+    recertificaciones: recertificaciones,
+    calcularFolio: calcularFolio,
     esNombreGenerico: esNombreGenerico,
     csv: csv,
     descargarCsv: function (soloReales) {

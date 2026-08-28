@@ -35,11 +35,18 @@
           <button id="btn-descartar-rescate" class="btn btn-mini">Descartar</button>
         </span>
       </div>
+      <div id="aviso-recertificar" class="aviso-rescate oculto">
+        <span id="recertificar-texto"></span>
+        <span class="registro-acciones">
+          <button id="btn-ver-recertificar" class="btn btn-mini">Ver quiénes</button>
+        </span>
+      </div>
       <div id="inicio-resumen" class="resumen-contenido"></div>
       <div class="botonera">
         <button id="btn-comenzar" class="btn btn-primario">Iniciar capacitación</button>
         <button id="btn-editar-contenido" class="btn btn-secundario">Editar contenido</button>
         <button id="btn-historial" class="btn btn-secundario">Historial y constancias</button>
+        <a class="btn btn-secundario" href="repaso.html" target="_blank" rel="noopener">Repaso para el celular</a>
       </div>
       <p class="letra-menuda">
         Vera es una inteligencia artificial y así se presenta ante el grupo.
@@ -150,6 +157,7 @@
         <div class="botonera-sala">
           <button id="btn-empezar-registro" class="btn btn-primario oculto">Ya estamos todos — empezar registro</button>
           <button id="btn-cambiar-a-demo" class="btn btn-secundario oculto">Continuar en modo demostración</button>
+          <button id="btn-duda" class="btn btn-primario oculto" title="Vera repite el punto y queda anotado como duda del grupo, sin nombres">🙋 No entendí — repetir</button>
           <button id="btn-pausar" class="btn btn-secundario oculto" title="Detiene la capacitación sin cerrar el acta">⏸ Pausar</button>
           <button id="btn-terminar" class="btn btn-mini" title="Corta la sesión y genera el acta con lo acumulado">Terminar y generar acta</button>
         </div>
@@ -193,6 +201,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <div id="acta-dudas" class="acta-dudas oculto"></div>
       <p id="acta-nota" class="letra-menuda">
         La atención se estima por postura de cabeza y apertura de ojos frente a la cámara.
         Es un indicio, no una medición absoluta: las decisiones sobre el personal las toma
@@ -220,6 +229,7 @@
       <div class="pestanas">
         <button class="pestana activa" data-vista="personas">Por persona</button>
         <button class="pestana" data-vista="sesiones">Por sesión</button>
+        <button class="pestana" data-vista="vigencia">Vigencia</button>
       </div>
 
       <div class="fila-buscar">

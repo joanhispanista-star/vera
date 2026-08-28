@@ -114,6 +114,7 @@ h2 { font-size: 22px; margin-bottom: 10px; }
   font-family: inherit;
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .btn-primario { background: var(--acento); color: #06282a; }
 .btn-primario:not(:disabled):hover { background: var(--acento-fuerte); color: #eafcfc; }
 .btn-secundario { background: var(--fondo-suave); color: var(--texto); border: 1px solid var(--borde); }
@@ -459,6 +460,18 @@ h2 { font-size: 22px; margin-bottom: 10px; }
   color: var(--texto-suave);
 }
 .registro-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.etiqueta-vencido { color: var(--rojo); border-color: var(--rojo); }
+.etiqueta-por-vencer { color: var(--ambar); border-color: var(--ambar); }
+.etiqueta-al-dia { color: var(--verde); border-color: var(--verde); }
+.fila-buscar input[type="number"] {
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  color: var(--texto);
+  font-family: inherit;
+  padding: 4px 8px;
+  margin: 0 6px;
+}
 
 /* ── Constancia ───────────────────────────────────────── */
 .constancia-marco { max-width: 900px; margin: 0 auto; }
@@ -528,6 +541,21 @@ h2 { font-size: 22px; margin-bottom: 10px; }
   color: #7d8ba1;
   text-align: center;
 }
+
+.acta-dudas {
+  background: var(--fondo-suave);
+  border-left: 4px solid var(--ambar);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.acta-dudas h3 { font-size: 15px; margin-bottom: 8px; color: var(--ambar); }
+.acta-dudas ul { list-style: none; }
+.acta-dudas li { padding: 5px 0 5px 18px; position: relative; color: var(--texto-suave); }
+.acta-dudas li::before { content: "?"; position: absolute; left: 2px; color: var(--ambar); font-weight: 700; }
+.acta-dudas .pie-dudas { margin-top: 8px; font-size: 12px; color: var(--texto-suave); }
 
 /* ── Modal editor ─────────────────────────────────────── */
 .modal {

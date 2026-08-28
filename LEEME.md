@@ -78,6 +78,40 @@ auditoría o la SIC pregunta por la Ley 2300.
 - **Borrar los datos de una persona**: la Ley 1581 le da ese derecho a
   cualquier asistente, y se hace desde su ficha.
 
+## Lo que ningún capacitador humano entrega
+
+**El botón "🙋 No entendí"** (en la sala, durante el dictado). Vera repite el
+punto en el acto, y queda anotado **sin nombres**: es una duda del grupo, no la
+falta de alguien. El acta lista "lo que el grupo pidió repetir", con el punto
+exacto. Sesión tras sesión, eso le dice al dueño del contenido **qué parte de
+SU inducción no se entiende** — un dato que un capacitador humano nunca lleva
+a una hoja.
+
+**Descargos** (antes del acta). El acta dice "se le llamó la atención 2 veces"
+sobre alguien que nunca fue oído — y a lo mejor estaba tomando apuntes. Vera le
+pregunta por su nombre si quiere aclarar algo, y la aclaración queda **en la
+misma línea del acta**, junto a la observación que la motivó. "Prefiero no
+decir nada" es una respuesta válida y no cuenta en contra. El Código Sustantivo
+del Trabajo exige oír al trabajador antes de sancionarlo: esto es lo que hace
+que el acta pueda estar en una carpeta de personal sin ser un problema.
+
+**Vigencia y recertificación**. Cada capacitación vale por N meses
+(configurable, 12 por defecto). Al abrir la app, lo primero que se ve es
+"⏰ hay 3 capacitaciones vencidas y 2 por vencer", y la pestaña **Vigencia** del
+historial dice quién y desde cuándo. Es lo que evita que la plataforma se quede
+muda después de capacitar a todo el mundo.
+
+**Folio del acta**. Cada acta lleva un folio (huella SHA-256 de su contenido,
+calculada por el navegador, sin red). Sirve para identificarla de forma única y
+comprobar que el papel impreso corresponde al registro guardado. **No es una
+firma digital** y así se dice en la constancia: prometer más sería mentir en un
+documento que puede terminar en una carpeta de personal.
+
+**Repaso para el celular** (`repaso.html`). El asesor sale de la sala con algo
+en la mano: el mismo contenido que Vera dictó, con las preguntas y sus
+respuestas ocultas hasta que las toque. Sin cámara, sin micrófono, sin guardar
+nada de quien lo lee.
+
 ## Otras funciones del día a día
 
 - **Pausar** (⏸ en la sala): el descanso de media sesión. La capacitación se
@@ -190,7 +224,9 @@ Todo es web estándar, sin dependencias ni build:
   historial, constancia) + el editor de contenido.
 - `contenido.js` — los cursos en texto plano editable; parser, exportar/importar.
 - `historial.js` — el archivo de actas: agregación por persona, CSV, respaldo,
-  borrado (Ley 1581) y el borrador de rescate.
+  borrado (Ley 1581), vigencia/recertificación, folio SHA-256 y el borrador
+  de rescate.
+- `repaso.html` — página aparte para el celular del capacitado.
 - `vera.js` — avatar SVG animado, voz (speechSynthesis), oído (SpeechRecognition).
 - `simulacion.js` — la sala simulada con guion (celular, sueño, ausencia).
 - `motor-atencion.js` — MediaPipe Face Landmarker (modo cámara) + la misma
