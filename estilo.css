@@ -265,7 +265,26 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   font-family: inherit;
 }
 .fila-entrada input:focus { outline: none; border-color: var(--acento); }
-.botonera-sala { display: flex; justify-content: center; }
+.botonera-sala { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+/* Opciones del examen: botones grandes, porque se responden con el mouse a un
+   metro de la pantalla y porque en el examen no se usa el micrófono. */
+.opciones-lista { display: flex; flex-direction: column; gap: 10px; }
+.opcion {
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  color: var(--texto);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  padding: 14px 18px;
+  text-align: left;
+}
+.opcion:hover:not(:disabled) { border-color: var(--acento); }
+.opcion:disabled { cursor: default; }
+.opcion.elegida { border-color: var(--acento); background: #24384f; }
 
 /* ── Video / simulación ───────────────────────────────── */
 .marco-video {

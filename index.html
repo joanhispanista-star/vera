@@ -96,8 +96,13 @@
         <input type="checkbox" id="chk-consentimiento">
         <span>Informé a los asistentes y autorizaron el uso de la cámara y el micrófono en esta sesión.</span>
       </label>
+      <div class="datos-sesion" id="zona-solo">
+        <label for="txt-mi-nombre">Tu nombre completo <span>(para tu constancia)</span></label>
+        <input type="text" id="txt-mi-nombre" placeholder="Ej.: Camilo Restrepo" autocomplete="name">
+      </div>
       <div class="botonera">
-        <button id="btn-modo-camara" class="btn btn-primario" disabled>Empezar con cámara (sala real)</button>
+        <button id="btn-modo-solo" class="btn btn-primario" disabled>Empezar mi capacitación</button>
+        <button id="btn-modo-camara" class="btn btn-secundario" disabled>Grupo en sala (varias personas)</button>
         <button id="btn-modo-sim" class="btn btn-secundario" disabled>Modo demostración (sin cámara)</button>
       </div>
       <p class="letra-menuda">El modo demostración usa una sala simulada de cuatro personas: sirve para
@@ -151,6 +156,19 @@
           <div class="fila-entrada">
             <button id="btn-responder-voz" class="btn btn-secundario">🎤 Responder por voz</button>
             <button id="btn-sin-respuesta" class="btn btn-mini">No hubo respuesta</button>
+          </div>
+        </div>
+
+        <div id="zona-opciones" class="zona-entrada oculto">
+          <div id="opciones-pregunta" class="respuesta-para"></div>
+          <div id="opciones-lista" class="opciones-lista"></div>
+        </div>
+
+        <div id="zona-reintento" class="zona-entrada oculto">
+          <div id="reintento-texto" class="respuesta-para"></div>
+          <div class="fila-entrada">
+            <button id="btn-reintentar" class="btn btn-primario">Repasar y volver a intentar</button>
+            <button id="btn-no-reintentar" class="btn btn-mini">Dejarlo para después</button>
           </div>
         </div>
 
@@ -297,6 +315,7 @@
 
 <script src="contenido.js"></script>
 <script src="historial.js"></script>
+<script src="examen.js"></script>
 <script src="vera.js"></script>
 <script src="simulacion.js"></script>
 <script src="motor-atencion.js"></script>

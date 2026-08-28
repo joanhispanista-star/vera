@@ -34,6 +34,40 @@ navegador). Lo que se edita en el computador no aparece solo en el celular.
   Google, gratuito) se descarga al navegador. El video **nunca** sale del
   computador.
 
+## Los tres modos
+
+**El caso del primer cliente** (área de cobranzas de una fintech): un asesor
+nuevo **sentado solo frente a un computador**, aprendiendo los procesos del
+ADMIN y los SOP por su cuenta.
+
+1. **Mi capacitación (individual)**: el asesor escribe su nombre, hace el curso
+   completo y **presenta un examen final**. Si lo aprueba, su constancia dice
+   APROBADO con la nota; si no, recibe una constancia de asistencia que dice
+   claramente que no aprobó, y Vera le dice qué módulos repasar. Hasta tres
+   intentos.
+2. **Grupo en sala**: el modo original, con varias personas y proyector.
+3. **Modo demostración**: la sala simulada, para vender sin reunir gente.
+
+### El examen: por qué es de opción múltiple
+
+Las preguntas abiertas (`?`) se califican buscando palabras clave dentro de la
+respuesta. Eso sirve para mantener despierto a un grupo, **pero no aguanta una
+decisión con consecuencias laborales**: "no sé… ¿veinte días?" contaría como
+acierto, y una respuesta perfecta con otras palabras contaría como error.
+
+Por eso el examen solo usa preguntas de **opción múltiple** (`*`), que el
+navegador califica sin ambigüedad y sin micrófono. Las abiertas siguen usándose
+durante el dictado; simplemente no deciden el aprobado. En el editor:
+
+```
+* ¿Con cuánta anticipación hay que avisar antes de reportar a centrales?
++ Al menos veinte días calendario. | Es el plazo del habeas data financiero.
+x Cinco días hábiles. | Ese plazo no existe: son veinte días calendario.
+```
+
+`+` es la correcta, `x` las incorrectas, y lo que va después de `|` es la
+explicación que Vera da al corregir. Las opciones se barajan en cada intento.
+
 ## Los dos modos
 
 1. **Sala real con cámara**: apunta la cámara al grupo (o a ti solo: con una

@@ -40,39 +40,77 @@
     }
   }
 
-  // Las actas viejas (de antes del historial) no traen id ni todos los campos.
-  // Se normalizan al leer para que la interfaz no tenga que preguntar por cada uno.
+  /* Las actas viejas (de antes del historial) no traen id ni todos los campos.
+     Se normalizan al leer para que la interfaz no tenga que preguntar por cada uno.
+
+     Y se les fuerza el TIPO, no solo el valor: estos datos pueden venir de un
+     respaldo hecho en OTRO computador, es decir de fuera de esta app. Un solo
+     campo con el tipo equivocado ("personas":"x", un nombre numérico, un null
+     en el arreglo) lanzaba un TypeError dentro de listar(); y como el aviso de
+     recertificación se pinta ANTES de cablear la interfaz, eso dejaba la app
+     entera muerta desde el arranque siguiente, sin decir por qué y sin manera
+     de llegar al historial a borrar el dato que la tumbó. */
   function normalizar(acta, indice) {
+    if (!acta || typeof acta !== 'object') acta = {};
+    // El arreglo de entrada NO se filtra: listar() y borrarSesion() dependen de
+    // que el índice siga siendo el mismo, porque el id de respaldo se arma con él.
+    var gente = Array.isArray(acta.personas) ? acta.personas : [];
     return {
-      id: acta.id || ('s' + indice + '-' + (acta.fecha || '')),
-      fecha: acta.fecha || '',
-      titulo: acta.titulo || 'Capacitación',
-      modo: acta.modo || 'camara',
-      duracionMin: acta.duracionMin || 0,
-      grupo: acta.grupo || '',
-      dictadaPor: acta.dictadaPor || '',
+      id: String(acta.id || ('s' + indice + '-' + (acta.fecha || ''))),
+      fecha: String(acta.fecha || ''),
+      titulo: String(acta.titulo || 'Capacitación'),
+      modo: acta.modo === 'camara' ? 'camara' : (acta.modo ? String(acta.modo) : 'camara'),
+      duracionMin: Number(acta.duracionMin) || 0,
+      grupo: String(acta.grupo || ''),
+      dictadaPor: String(acta.dictadaPor || ''),
       rescatada: !!acta.rescatada,
-      dudas: acta.dudas || [],
-      cobertura: acta.cobertura || null,
-      personas: (acta.personas || []).map(function (p) {
+      dudas: Array.isArray(acta.dudas) ? acta.dudas.filter(function (d) {
+        return d && typeof d === 'object';
+      }).map(function (d) {
         return {
-          nombre: p.nombre || 'Sin registrar',
+          modulo: Number(d.modulo) || 0,
+          tituloModulo: String(d.tituloModulo || 'Módulo'),
+          indicePunto: Number(d.indicePunto) || 0,
+          texto: String(d.texto || ''),
+          veces: Number(d.veces) || 1
+        };
+      }) : [],
+      cobertura: (acta.cobertura && typeof acta.cobertura === 'object') ? {
+        modulosDictados: Number(acta.cobertura.modulosDictados) || 0,
+        modulosTotal: Number(acta.cobertura.modulosTotal) || 0
+      } : null,
+      personas: gente.map(function (p) {
+        if (!p || typeof p !== 'object') p = {};
+        return {
+          nombre: String(p.nombre || 'Sin registrar'),
           atencion: typeof p.atencion === 'number' ? p.atencion : null,
-          llamados: p.llamados || 0,
-          conversaMs: p.conversaMs || 0,
+          llamados: Number(p.llamados) || 0,
+          conversaMs: Number(p.conversaMs) || 0,
           // undefined ≠ 0: las actas guardadas antes de que existiera este dato
           // no saben nada de ausencias, y decir "presencia completa" sería
           // inventarles un hecho a personas reales.
           ausenteMs: typeof p.ausenteMs === 'number' ? p.ausenteMs : null,
-          llegoTardeMs: typeof p.llegoTardeMs === 'number' ? p.llegoTardeMs : 0,
+          llegoTardeMs: Number(p.llegoTardeMs) || 0,
           // Sin esto, un acta reabierta perdía el "y volvió a concentrarse":
           // decía menos que el día que se generó, y siempre en contra.
           cerroAtenta: !!p.cerroAtenta,
           // La aclaración del asistente es suya: viaja con el acta a donde
           // vaya el acta, o el derecho a ser oído sería solo de la pantalla.
-          descargo: p.descargo || '',
+          descargo: String(p.descargo || ''),
+          // La nota del examen es lo que decide si la constancia dice APROBADO:
+          // tiene que sobrevivir a que el acta se reabra o se restaure.
+          examen: (p.examen && typeof p.examen === 'object') ? {
+            nota: Number(p.examen.nota) || 0,
+            minimo: Number(p.examen.minimo) || 0,
+            bien: Number(p.examen.bien) || 0,
+            total: Number(p.examen.total) || 0,
+            aprobado: !!p.examen.aprobado,
+            intento: Number(p.examen.intento) || 1
+          } : null,
           paraSupervisor: !!p.paraSupervisor,
-          respuestas: p.respuestas || []
+          respuestas: Array.isArray(p.respuestas) ? p.respuestas.filter(function (r) {
+            return r && typeof r === 'object';
+          }) : []
         };
       })
     };
@@ -375,14 +413,20 @@
   function borrarPersona(nombre) {
     var clave = String(nombre).toLowerCase().trim();
     var quitar = function (lista) {
-      return (lista || []).filter(function (p) {
-        return String(p.nombre || '').toLowerCase().trim() !== clave;
+      // Datos crudos, no normalizados: aquí también puede llegar basura de un
+      // respaldo, y el botón "Borrar sus datos" no puede fallar en silencio.
+      if (!Array.isArray(lista)) return [];
+      return lista.filter(function (p) {
+        return !p || typeof p !== 'object' ||
+          String(p.nombre || '').toLowerCase().trim() !== clave;
       });
     };
-    var actas = leerCrudo().map(function (a) {
+    var actas = leerCrudo().filter(function (a) {
+      return a && typeof a === 'object'; // una entrada nula tumbaba el borrado
+    }).map(function (a) {
       a.personas = quitar(a.personas);
       return a;
-    }).filter(function (a) { return (a.personas || []).length > 0; });
+    }).filter(function (a) { return a.personas.length > 0; });
     // El borrador es la OTRA copia de datos personales y vive aparte: dejarlo
     // intacto haría falsa la promesa de "borrar sus datos" (Ley 1581).
     try {

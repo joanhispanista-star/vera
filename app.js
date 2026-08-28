@@ -24,6 +24,11 @@
   var terminada = false;        // "Terminar y generar acta": corta las cadenas pendientes
   var actaLista = false;        // el acta se genera una sola vez
   var grupoSesion = '';         // grupo o sede, para que el acta sirva de evidencia
+  var autoestudio = false;      // un asesor solo frente al computador (el caso real del cliente)
+  var miNombre = '';            // se escribe al inicio en autoestudio, no se pregunta por voz
+  var intentoExamen = 0;
+  var resultadoExamen = null;
+  var resolverOpcion = null;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
   var dudas = [];               // puntos que el grupo pidió repetir ("No entendí")
@@ -87,6 +92,15 @@
     }
     // Con rotación alta, media sala real es UNA persona un martes cualquiera:
     // decirle "acomódense, guarden el celular" delata que se le habla a un grupo.
+    if (autoestudio) {
+      // El asesor ya escribió su nombre: no se le pregunta, se le llama por él
+      // desde el primer segundo. Y se le dice de entrada que hay examen: nadie
+      // debe enterarse al final de que su constancia dependía de una nota.
+      return saludoPorHora() + ', ' + miNombre + comun +
+        'y sí, te estoy viendo por la cámara mientras hacemos esto. ' +
+        'Vamos a hacer tu capacitación completa, y al final te voy a hacer un examen: ' +
+        'si lo pasas, queda tu constancia. Ponte cómodo, guarda el celular, y arrancamos.';
+    }
     if (window.Motor.presentes().length === 1) {
       return saludoPorHora() + comun + 'y sí, te estoy viendo por la cámara. ' +
         'Hoy vamos a hacer tu inducción completa, voy a estar pendiente de ti, ' +
@@ -130,7 +144,9 @@
       if (window.Historial.guardar(pendiente)) window.Historial.borrarBorrador();
       $('aviso-rescate').classList.add('oculto');
     }
-    modo = elegido;
+    autoestudio = (elegido === 'solo');
+    modo = autoestudio ? 'camara' : elegido;
+    miNombre = autoestudio ? $('txt-mi-nombre').value.trim() : '';
     grupoSesion = $('txt-grupo').value.trim();
     ir('p-sala');
     window.Vera.iniciar($('vera-contenedor'), $('vera-subtitulo'), $('vera-estado'));
@@ -235,6 +251,27 @@
     window.Vera.callar();
     fase = 'registro';
     inicioSesion = Date.now();
+
+    // Autoestudio: no hay a quién presentar. El nombre ya se escribió y se le
+    // asigna a la única cara detectada; pedirlo por voz sería una ceremonia
+    // inútil que además falla si el micrófono no sirve.
+    if (autoestudio) {
+      $('btn-empezar-registro').classList.add('oculto');
+      $('barra-fase').textContent = 'Capacitación individual';
+      $('diapositiva-titulo').textContent = contenido.titulo;
+      $('diapositiva-puntos').innerHTML = '';
+      var yo = window.Motor.presentes()[0];
+      if (yo) {
+        yo.nombre = miNombre || 'Asistente';
+        window.Motor.calibrar(yo);
+      }
+      window.Motor.bloquearNuevas = true;
+      window.Vera.decir(
+        'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
+        'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
+      ).then(dictado);
+      return;
+    }
     $('btn-empezar-registro').classList.add('oculto');
     $('barra-fase').textContent = 'Registro de asistentes';
     $('diapositiva-titulo').textContent = contenido.titulo;
@@ -452,7 +489,10 @@
 
     cadena.then(function () {
       if (terminada) return;
-      return rondaFinal();
+      // En autoestudio manda el examen: es lo que decide si el asesor puede
+      // salir al teléfono. La ronda final (repartir preguntas entre quienes no
+      // respondieron) es para grupos, y aquí no tendría sentido.
+      return autoestudio ? rondaExamen() : rondaFinal();
     }).then(function () {
       if (terminada) return;
       return rondaDescargos();
@@ -500,6 +540,87 @@
     });
 
     return cadena;
+  }
+
+  /* El examen final del autoestudio. Todas las preguntas calificables del
+     curso, en orden variado; si no alcanza la nota mínima, Vera dice qué
+     repasar y se puede reintentar. Nadie sale con constancia de aprobación
+     sin haberla ganado: es el punto entero del producto para este cliente. */
+  function rondaExamen() {
+    var quien = window.Motor.presentes()[0] || window.Motor.personas()[0];
+    if (!quien) return Promise.resolve();
+
+    var armado = window.Examen.armar(contenido);
+    if (!armado.preguntas.length) {
+      // Sin preguntas calificables no hay examen que valga: se dice, en vez de
+      // fingir una evaluación o aprobar a alguien por defecto.
+      resultadoExamen = null;
+      return window.Vera.decir(
+        'Este curso todavía no tiene preguntas con respuesta para calificar, así que hoy no ' +
+        'te puedo tomar examen. Queda la constancia de que hiciste la capacitación, sin nota.'
+      );
+    }
+
+    intentoExamen += 1;
+    fase = 'examen';
+    quien.respuestas = []; // el examen se califica solo con este intento
+    $('btn-duda').classList.add('oculto'); // en el examen no se repite el contenido
+
+    var cadena = window.Vera.decir(
+      (intentoExamen === 1
+        ? 'Muy bien, ' + quien.nombre + '. Llegó el examen: son ' + armado.preguntas.length +
+          (armado.preguntas.length === 1 ? ' pregunta' : ' preguntas') + ', y necesitas ' +
+          window.Examen.notaMinima() + ' por ciento para aprobar.'
+        : 'Vamos con el intento número ' + intentoExamen + '. Con calma, ' + quien.nombre + '.') +
+      ' Responde en voz alta o escribiendo.'
+    );
+
+    armado.preguntas.forEach(function (item, idx) {
+      cadena = cadena.then(esperarSiPausada).then(function () {
+        if (terminada) return;
+        $('diapositiva-titulo').textContent = 'Examen final';
+        $('diapositiva-puntos').innerHTML = '<li class="actual">Pregunta ' + (idx + 1) +
+          ' de ' + armado.preguntas.length + '</li>';
+        return hacerPregunta({ titulo: item.tituloModulo, pregunta: item.pregunta },
+          item.modulo, quien, 'Examen · ' + (idx + 1) + ' de ' + armado.preguntas.length,
+          item.pregunta, true);
+      });
+    });
+
+    return cadena.then(function () {
+      if (terminada) return;
+      var res = window.Examen.calificar(quien.respuestas.map(function (r, i) {
+        return { veredicto: r.veredicto, tituloModulo: armado.preguntas[i] ? armado.preguntas[i].tituloModulo : '' };
+      }));
+      resultadoExamen = res;
+      resultadoExamen.intento = intentoExamen;
+      quien.examen = res;
+      return window.Vera.decir(window.Examen.fraseResultado(quien.nombre, res, intentoExamen))
+        .then(function () {
+          if (terminada || res.aprobado || intentoExamen >= window.Examen.maxIntentos) return;
+          return ofrecerReintento(res);
+        });
+    });
+  }
+
+  /* Reintento: se le pregunta, no se le impone. Quien acaba de perder un examen
+     tiene derecho a decir "hoy no". */
+  function ofrecerReintento(res) {
+    return new Promise(function (resolver) {
+      var resuelto = false;
+      var cerrar = function (repetir) {
+        if (resuelto) return;
+        resuelto = true;
+        $('zona-reintento').classList.add('oculto');
+        resolver(repetir ? rondaExamen() : undefined);
+      };
+      $('reintento-texto').textContent = 'Sacaste ' + res.nota + '% y el mínimo es ' + res.minimo +
+        '%. Intento ' + intentoExamen + ' de ' + window.Examen.maxIntentos + '.' +
+        (res.modulosARepasar.length ? ' Para repasar: ' + res.modulosARepasar.join(', ') + '.' : '');
+      $('zona-reintento').classList.remove('oculto');
+      $('btn-reintentar').onclick = function () { cerrar(true); };
+      $('btn-no-reintentar').onclick = function () { cerrar(false); };
+    });
   }
 
   /* Descargos: el acta dice "se le llamó la atención 2 veces" sobre alguien
@@ -555,6 +676,28 @@
     });
 
     return cadena;
+  }
+
+  /* Muestra las opciones y espera el clic. Devuelve el índice elegido, o -1 si
+     la sesión se cortó. Sin micrófono: en un piso de cobranzas el micrófono
+     abierto captaría las llamadas reales de los asesores de al lado. */
+  function pedirOpcion(persona, q) {
+    return new Promise(function (resolver) {
+      var resuelto = false;
+      var entregar = function (idx) {
+        if (resuelto) return;
+        resuelto = true;
+        $('zona-opciones').classList.add('oculto');
+        resolverOpcion = null;
+        resolver(idx);
+      };
+      resolverOpcion = entregar;
+      $('opciones-pregunta').textContent = persona.nombre + ', elige una respuesta:';
+      $('opciones-lista').innerHTML = q.opciones.map(function (o, i) {
+        return '<button class="opcion" data-op="' + i + '">' + escaparHtml(o.texto) + '</button>';
+      }).join('');
+      $('zona-opciones').classList.remove('oculto');
+    });
   }
 
   function pedirDescargo(p) {
@@ -639,7 +782,7 @@
     });
   }
 
-  function hacerPregunta(m, idxModulo, aQuien, rotulo, cual) {
+  function hacerPregunta(m, idxModulo, aQuien, rotulo, cual, esExamen) {
     if (terminada) return Promise.resolve();
     fase = 'pregunta';
     var q = cual || m.pregunta;
@@ -659,6 +802,21 @@
       })
       .then(function () {
         if (terminada) return null;
+        // Pregunta de opción múltiple: se responde con botones, sin micrófono
+        // y sin ambigüedad de calificación.
+        if (q.tipo === 'opciones') {
+          if (modo === 'simulacion') {
+            // En el demo se elige una opción (la correcta salvo Jorge, que falla
+            // la primera) para que la escena se vea completa.
+            var elegida = q.opciones.findIndex(function (o) { return o.correcta; });
+            if (p.nombreReal === 'Jorge' && idxModulo === 0) {
+              elegida = q.opciones.findIndex(function (o) { return !o.correcta; });
+            }
+            $('barra-fase').textContent = p.nombre + ' elige: “' + q.opciones[elegida].texto + '”';
+            return pausa(window.Vera.modoRapido ? 400 : 1500).then(function () { return elegida; });
+          }
+          return pedirOpcion(p, q);
+        }
         if (modo === 'simulacion') {
           var r = window.Simulacion.responder(idxModulo, p, q);
           window.Simulacion.hablar(p, 1800);
@@ -672,11 +830,37 @@
         // el acta ya se guardó: añadirle una respuesta aquí crearía un acta en
         // pantalla distinta de la archivada.
         if (terminada) return null;
+        if (q.tipo === 'opciones') {
+          var idx = typeof texto === 'number' ? texto : -1;
+          var op = idx >= 0 ? q.opciones[idx] : null;
+          var vd = !op ? 'sin-respuesta' : (op.correcta ? 'correcta' : 'incorrecta');
+          p.respuestas.push({ modulo: m.titulo, pregunta: q.texto, veredicto: vd,
+                              texto: op ? op.texto : '' });
+          if (esExamen) {
+            // En examen no se corrige sobre la marcha: se sabría la respuesta
+            // buena para el reintento.
+            return window.Vera.decir(op ? 'Anotado. Sigamos.' : 'Sin respuesta. Sigamos.');
+          }
+          var explica = op && op.porQue ? ' ' + op.porQue : '';
+          return window.Vera.decir(!op
+            ? 'No respondiste esta, ' + p.nombre + '. Sigamos.'
+            : (op.correcta ? '¡Correcto, ' + p.nombre + '!' + explica
+                           : 'Esa no es, ' + p.nombre + '.' + explica));
+        }
         var veredicto = evaluarRespuesta(texto, q.claves);
-        p.respuestas.push({ modulo: m.titulo, veredicto: veredicto, texto: texto || '' });
+        // Se guarda la pregunta, no solo el módulo: sin esto, "qué pregunta
+        // falla todo el mundo" no se puede computar nunca, ni hacia atrás.
+        p.respuestas.push({ modulo: m.titulo, pregunta: q.texto, veredicto: veredicto, texto: texto || '' });
         var modelo = q.respuestaModelo;
         var reaccion;
-        if (veredicto === 'correcta') {
+        // En examen NO se corrige sobre la marcha: decir la respuesta buena
+        // regalaría las de un reintento, y el asesor merece saber su nota
+        // completa antes de que se la expliquen.
+        if (esExamen) {
+          reaccion = veredicto === 'sin-respuesta'
+            ? 'Sin respuesta. Sigamos.'
+            : 'Anotado. Sigamos.';
+        } else if (veredicto === 'correcta') {
           reaccion = '¡Muy bien, ' + p.nombre + '! Exacto: ' + modelo;
         } else if (veredicto === 'incorrecta') {
           reaccion = 'Gracias por intentarlo, ' + p.nombre + '. La respuesta que buscaba es: ' + modelo;
@@ -813,9 +997,12 @@
         return '–';
       }).join(' ');
       var ac = window.Historial.aciertos(p);
-      var respuestas = (p.respuestas || []).length
-        ? marcas + (ac.total > 1 ? ' <b>(' + ac.bien + '/' + ac.total + ')</b>' : '')
-        : 'no le tocó pregunta';
+      var respuestas = p.examen && p.examen.total
+        ? '<b>' + p.examen.nota + '%</b> ' + (p.examen.aprobado ? '✔ aprobó' : '✘ no aprobó') +
+          (p.examen.intento > 1 ? ' (intento ' + p.examen.intento + ')' : '')
+        : ((p.respuestas || []).length
+            ? marcas + (ac.total > 1 ? ' <b>(' + ac.bien + '/' + ac.total + ')</b>' : '')
+            : 'no le tocó pregunta');
       var obs, claseObs;
       // Solo se afirma lo que se midió: el conteo de llamados es un hecho;
       // "volvió a concentrarse" solo si la atención al cierre era alta de verdad.
@@ -947,6 +1134,7 @@
           // que dijo el día que se generó, sin recalcular con datos que ya no existen.
           cerroAtenta: !!(p.presente && p.ema > 0.7),
           descargo: p.descargo || '',
+          examen: p.examen || null,
           paraSupervisor: p.paraSupervisor,
           respuestas: p.respuestas
         };
@@ -997,9 +1185,15 @@
       { valor: constanciaSesion.duracionMin + ' min', rotulo: 'Duración' },
       { valor: (typeof p.atencion === 'number' ? p.atencion + '%' : '—'), rotulo: 'Atención estimada' }
     ];
-    // "Acertadas" solo sobre las preguntas que de verdad se pudieron calificar.
-    if (ac.total) datos.push({ valor: ac.bien + ' de ' + ac.total, rotulo: 'Preguntas acertadas' });
-    if (ac.sinCalificar) datos.push({ valor: String(ac.sinCalificar), rotulo: 'Respondidas sin calificar' });
+    // La nota del examen manda sobre el conteo suelto de preguntas.
+    if (p.examen && p.examen.total) {
+      datos.push({ valor: p.examen.nota + '%', rotulo: 'Nota del examen' });
+      datos.push({ valor: p.examen.aprobado ? 'APROBADO' : 'NO APROBADO', rotulo: 'Resultado' });
+    } else {
+      // "Acertadas" solo sobre las preguntas que de verdad se pudieron calificar.
+      if (ac.total) datos.push({ valor: ac.bien + ' de ' + ac.total, rotulo: 'Preguntas acertadas' });
+      if (ac.sinCalificar) datos.push({ valor: String(ac.sinCalificar), rotulo: 'Respondidas sin calificar' });
+    }
 
     var fecha = new Date(constanciaSesion.fecha);
     var fechaTexto = isNaN(fecha.getTime()) ? '' :
@@ -1011,12 +1205,19 @@
       (esDemo ? '<div class="c-sello-demo">DEMOSTRACIÓN · SIN VALIDEZ</div>' : '') +
       (constanciaSesion.rescatada
         ? '<div class="c-sello-demo c-sello-aviso">SESIÓN INTERRUMPIDA · ACTA RESCATADA</div>' : '') +
+      // Quien no aprobó NO recibe un papel que parezca diploma: recibe una
+      // constancia de asistencia, que es lo único cierto.
+      (p.examen && p.examen.total && !p.examen.aprobado
+        ? '<div class="c-sello-demo c-sello-aviso">NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA</div>' : '') +
       '<div class="c-marca">VERA · CAPACITADORA VIRTUAL</div>' +
-      '<h1>Constancia de capacitación</h1>' +
+      '<h1>' + (p.examen && p.examen.total && !p.examen.aprobado
+        ? 'Constancia de asistencia' : 'Constancia de capacitación') + '</h1>' +
       '<div class="c-linea"></div>' +
       '<div class="c-texto">Se deja constancia de que</div>' +
       '<div class="c-nombre">' + escaparHtml(p.nombre || 'Sin registrar') + '</div>' +
-      '<div class="c-texto">asistió a la capacitación</div>' +
+      '<div class="c-texto">' + (p.examen && p.examen.total
+        ? (p.examen.aprobado ? 'asistió y APROBÓ la capacitación' : 'asistió a la capacitación')
+        : 'asistió a la capacitación') + '</div>' +
       '<div class="c-curso">“' + escaparHtml(constanciaSesion.titulo) + '”' + '</div>' +
       '<div class="c-texto">dictada el ' + fechaTexto +
         (constanciaSesion.grupo ? ' · ' + escaparHtml(constanciaSesion.grupo) : '') + '</div>' +
@@ -1289,9 +1490,35 @@
 
   // ── Cableado de la interfaz ─────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    pintarResumen();
-    ofrecerRescate();
-    pintarAvisoRecertificacion();
+    /* Los tres pintados de arranque corren ANTES del cableado. Si uno lanza,
+       el resto del handler no se ejecuta y la app queda sin UN SOLO escucha:
+       ningún botón responde y no hay forma de llegar al historial a borrar el
+       dato que la tumbó. Y el dato puede venir de fuera (un respaldo hecho en
+       otro computador), así que cada pintado falla por su cuenta. */
+    try {
+      pintarResumen();
+    } catch (e) {
+      $('inicio-resumen').textContent =
+        'No se pudo leer el contenido guardado. Revíselo en “Editar contenido”.';
+      $('btn-comenzar').disabled = true;
+    }
+    try {
+      ofrecerRescate();
+    } catch (e) {
+      $('aviso-rescate').classList.add('oculto');
+    }
+    try {
+      pintarAvisoRecertificacion();
+    } catch (e) {
+      // Si el historial no se pudo leer, no se puede afirmar "hay N vencidas":
+      // se dice lo que pasa y se quita el botón que no llevaría a ninguna parte.
+      $('recertificar-texto').textContent =
+        '⚠ No se pudo leer el historial de este navegador: puede estar dañado o venir de ' +
+        'un respaldo con datos extraños. Ábralo en “Historial y constancias”; si sigue ' +
+        'igual, restaure un respaldo bueno.';
+      $('btn-ver-recertificar').classList.add('oculto');
+      $('aviso-recertificar').classList.remove('oculto');
+    }
 
     $('btn-comenzar').addEventListener('click', function () { ir('p-consentimiento'); });
 
@@ -1303,8 +1530,22 @@
     $('chk-consentimiento').addEventListener('change', function (ev) {
       $('btn-modo-camara').disabled = !ev.target.checked;
       $('btn-modo-sim').disabled = !ev.target.checked;
+      $('btn-modo-solo').disabled = !ev.target.checked;
     });
     $('btn-volver-inicio').addEventListener('click', function () { ir('p-inicio'); });
+
+    // El modo autoestudio exige el nombre: la constancia es de alguien.
+    $('btn-modo-solo').addEventListener('click', function () {
+      if (!$('txt-mi-nombre').value.trim()) {
+        $('txt-mi-nombre').focus();
+        $('resultado-voz').textContent = 'Escribe tu nombre para poder emitir tu constancia.';
+        return;
+      }
+      iniciarSesion('solo');
+    });
+    $('txt-mi-nombre').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !$('btn-modo-solo').disabled) $('btn-modo-solo').click();
+    });
     $('btn-modo-camara').addEventListener('click', function () { iniciarSesion('camara'); });
     $('btn-modo-sim').addEventListener('click', function () { iniciarSesion('simulacion'); });
 
@@ -1366,6 +1607,17 @@
 
     $('btn-saltar').addEventListener('click', function () { window.Vera.callar(); });
     $('btn-pausar').addEventListener('click', alternarPausa);
+    $('opciones-lista').addEventListener('click', function (ev) {
+      var boton = ev.target.closest('[data-op]');
+      if (!boton || !resolverOpcion) return;
+      boton.classList.add('elegida');
+      // Se deshabilitan todas: un segundo clic cambiaría la respuesta después
+      // de haberla entregado.
+      $('opciones-lista').querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      var r = resolverOpcion;
+      resolverOpcion = null;
+      r(parseInt(boton.dataset.op, 10));
+    });
     $('btn-duda').addEventListener('click', marcarDuda);
 
     // Proyectar la pantalla en la sala no puede significar exhibir el
@@ -1384,6 +1636,8 @@
       window.Vera.callar();
       if (resolverNombre) { var rn = resolverNombre; resolverNombre = null; rn(''); }
       if (resolverRespuesta) { var rr = resolverRespuesta; resolverRespuesta = null; rr(null); }
+      if (resolverOpcion) { var ro = resolverOpcion; resolverOpcion = null; ro(-1); }
+      $('zona-opciones').classList.add('oculto');
       mostrarActa();
     });
 
