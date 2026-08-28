@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sacar el proceso — Vera</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .extraer { max-width: 780px; margin: 0 auto; padding: 20px 18px 60px; }
+  .bloque {
+    background: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .bloque h2 { color: var(--acento); font-size: 18px; margin-bottom: 6px; }
+  .bloque .para-que { color: var(--texto-suave); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+  .campo { margin-bottom: 16px; }
+  .campo label { display: block; font-size: 15px; margin-bottom: 4px; line-height: 1.45; }
+  .campo .pista { display: block; font-size: 12px; color: var(--texto-suave); margin-bottom: 8px; }
+  .campo textarea {
+    width: 100%;
+    min-height: 78px;
+    background: var(--fondo-suave);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    resize: vertical;
+  }
+  .campo textarea:focus { outline: none; border-color: var(--acento); }
+  .avance {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--fondo);
+    border-bottom: 1px solid var(--borde);
+    padding: 12px 0 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--texto-suave);
+  }
+  .avance .barra-avance { height: 6px; background: var(--fondo-suave); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .avance .barra-avance i { display: block; height: 100%; background: var(--acento); border-radius: 3px; transition: width .3s; }
+  #salida {
+    width: 100%; min-height: 320px;
+    background: var(--fondo); border: 1px solid var(--acento); border-radius: 8px;
+    color: var(--texto); font-family: Consolas, monospace; font-size: 13px;
+    line-height: 1.5; padding: 12px; resize: vertical;
+  }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">VERA <span>sacar el proceso</span></div>
+  <div class="cabecera-nota">Lo que respondas se guarda en este navegador mientras escribes.</div>
+</header>
+
+<main class="extraer">
+  <h1>Del que sabe, al curso</h1>
+  <p class="intro">
+    El proceso que hay que enseñarle a un asesor nuevo casi siempre vive en la
+    cabeza de una persona que lo hace bien y nunca lo escribió. Estas preguntas
+    son las que hay que hacerle. Responde <strong>como si se lo estuvieras
+    contando a alguien que empieza el lunes</strong>: frases completas, sin
+    siglas sin explicar. Al final, esto se convierte en un curso que Vera dicta.
+  </p>
+  <p class="letra-menuda">
+    No hay que responder todo de una vez ni en orden. Lo que quede vacío
+    simplemente no entra al curso — es mejor un curso con huecos marcados que
+    uno que se inventa cómo funciona el sistema.
+  </p>
+
+  <div class="avance">
+    <span id="avance-texto">0 de 0 respondidas</span>
+    <div class="barra-avance"><i id="avance-barra" style="width:0%"></i></div>
+  </div>
+
+  <div id="formulario"></div>
+
+  <div class="bloque">
+    <h2>El curso</h2>
+    <p class="para-que">
+      Esto es lo que respondiste, convertido al formato de Vera. Cópialo y
+      pégalo en “Editar contenido”, en la app. Revísalo antes: Vera va a decir
+      esto en voz alta, tal cual.
+    </p>
+    <div class="botonera" style="justify-content:flex-start;margin-bottom:12px">
+      <button id="btn-generar" class="btn btn-primario">Generar el curso</button>
+      <button id="btn-copiar-curso" class="btn btn-secundario">Copiar</button>
+      <button id="btn-descargar" class="btn btn-secundario">Descargar</button>
+      <button id="btn-limpiar" class="btn btn-mini">Borrar todo lo escrito</button>
+    </div>
+    <textarea id="salida" spellcheck="false" placeholder="Oprime “Generar el curso”…"></textarea>
+  </div>
+</main>
+
+<script src="extraer.js"></script>
+</body>
+</html>
