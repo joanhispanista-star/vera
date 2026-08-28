@@ -85,7 +85,9 @@ punto en el acto, y queda anotado **sin nombres**: es una duda del grupo, no la
 falta de alguien. El acta lista "lo que el grupo pidió repetir", con el punto
 exacto. Sesión tras sesión, eso le dice al dueño del contenido **qué parte de
 SU inducción no se entiende** — un dato que un capacitador humano nunca lleva
-a una hoja.
+a una hoja. La pestaña **"Qué no se entiende"** del historial lo acumula por
+curso: "este punto se pidió en 4 de 5 sesiones" ya no es una anécdota, es un
+diagnóstico de que ese párrafo está mal escrito.
 
 **Descargos** (antes del acta). El acta dice "se le llamó la atención 2 veces"
 sobre alguien que nunca fue oído — y a lo mejor estaba tomando apuntes. Vera le

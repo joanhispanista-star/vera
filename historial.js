@@ -236,6 +236,38 @@
     }).catch(function () { return null; });
   }
 
+  /* Panorama de dudas por curso. Una duda suelta en un acta es una anécdota;
+     el mismo punto pedido en cuatro de cinco sesiones es un diagnóstico: ese
+     párrafo está mal escrito. Es lo que convierte a Vera en algo que MEJORA
+     la capacitación de la empresa, no solo que la dicta. */
+  function panoramaDudas(incluirDemos) {
+    var porCurso = {};
+    listar().forEach(function (s) {
+      if (!incluirDemos && s.modo !== 'camara') return;
+      if (!porCurso[s.titulo]) porCurso[s.titulo] = { curso: s.titulo, sesiones: 0, puntos: {} };
+      var c = porCurso[s.titulo];
+      c.sesiones += 1;
+      (s.dudas || []).forEach(function (d) {
+        var clave = d.tituloModulo + '|' + d.indicePunto;
+        if (!c.puntos[clave]) {
+          c.puntos[clave] = { tituloModulo: d.tituloModulo, texto: d.texto, sesiones: 0, veces: 0 };
+        }
+        c.puntos[clave].sesiones += 1;
+        c.puntos[clave].veces += (d.veces || 1);
+      });
+    });
+    return Object.keys(porCurso).map(function (k) {
+      var c = porCurso[k];
+      return {
+        curso: c.curso,
+        sesiones: c.sesiones,
+        puntos: Object.keys(c.puntos).map(function (j) { return c.puntos[j]; })
+          .sort(function (a, b) { return b.sesiones - a.sesiones || b.veces - a.veces; })
+      };
+    }).filter(function (c) { return c.puntos.length; })
+      .sort(function (a, b) { return b.puntos.length - a.puntos.length; });
+  }
+
   // ── Exportar ────────────────────────────────────────────
   function escaparCampo(valor) {
     var texto = String(valor === null || valor === undefined ? '' : valor);
@@ -424,6 +456,7 @@
     vigenciaMeses: vigenciaMeses,
     fijarVigencia: fijarVigencia,
     recertificaciones: recertificaciones,
+    panoramaDudas: panoramaDudas,
     calcularFolio: calcularFolio,
     esNombreGenerico: esNombreGenerico,
     csv: csv,

@@ -1172,6 +1172,43 @@
       return;
     }
 
+    if (vistaHistorial === 'dudas') {
+      var panorama = window.Historial.panoramaDudas(incluirDemos).filter(function (c) {
+        return !filtro || c.curso.toLowerCase().indexOf(filtro) >= 0;
+      });
+      if (!panorama.length) {
+        cuerpo.innerHTML = '<div class="vacio-historial">' + (filtro
+          ? 'Ningún curso coincide con esa búsqueda.'
+          : 'Todavía nadie ha pedido repetir nada.<br>' +
+            'Durante la capacitación, el botón “🙋 No entendí” anota el punto ' +
+            'sin nombres. Aquí se ve qué partes del contenido se piden más.') + '</div>';
+        return;
+      }
+      cuerpo.innerHTML = panorama.map(function (c) {
+        return '<div class="registro">' +
+          '<div class="registro-cabeza">' +
+            '<span class="registro-nombre">' + escaparHtml(c.curso) + '</span>' +
+            '<span class="registro-meta">' + c.sesiones +
+              (c.sesiones === 1 ? ' sesión dictada' : ' sesiones dictadas') + '</span>' +
+          '</div>' +
+          '<div class="registro-lista">' + c.puntos.map(function (pt) {
+            var proporcion = pt.sesiones + ' de ' + c.sesiones;
+            var alerta = c.sesiones >= 2 && pt.sesiones >= Math.ceil(c.sesiones / 2);
+            return '<div class="registro-linea">' +
+              '<span><b>' + escaparHtml(pt.tituloModulo) + '</b> — “' +
+                escaparHtml(String(pt.texto).slice(0, 110)) +
+                (String(pt.texto).length > 110 ? '…' : '') + '”</span>' +
+              '<span class="etiqueta-demo' + (alerta ? ' etiqueta-por-vencer' : '') + '">' +
+                'pedido en ' + proporcion + '</span>' +
+              '</div>';
+          }).join('') + '</div>' +
+          '</div>';
+      }).join('') +
+      '<p class="letra-menuda">Un punto que se pide en la mitad de las sesiones o más no es problema de la gente: ' +
+      'está mal explicado. Vale la pena reescribirlo en “Editar contenido”.</p>';
+      return;
+    }
+
     if (vistaHistorial === 'vigencia') {
       var meses = window.Historial.vigenciaMeses();
       var lista = window.Historial.recertificaciones().filter(function (r) {
