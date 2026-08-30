@@ -107,11 +107,25 @@
     }
     $('btn-comenzar').disabled = false;
     var minutos = window.ContenidoLib.estimarMinutos(contenido, 0);
+    var examen = window.Examen ? window.Examen.armar(contenido) : { preguntas: [] };
+    /* Sin preguntas de opción múltiple no hay examen, y por lo tanto tampoco
+       constancia de aprobación. Le pasa a quien editó un curso antes de que
+       existiera ese formato: su copia guardada se conserva (no se le pisa lo
+       que escribió) pero se queda sin las preguntas nuevas — y sin este aviso
+       lo descubriría el día de la capacitación, sin saber por qué. */
+    var avisoExamen = examen.preguntas.length
+      ? 'Examen final: <strong>' + examen.preguntas.length + ' preguntas</strong>, ' +
+        'y se aprueba con ' + Math.ceil((window.Examen.notaMinima() / 100) * examen.preguntas.length) +
+        ' aciertos.'
+      : '<span style="color:var(--ambar)">⚠ Este curso no tiene preguntas de opción múltiple, ' +
+        'así que no puede haber examen ni constancia de aprobación. Si es un curso de fábrica que ' +
+        'usted editó, abra “Editar contenido” y oprima “Restaurar el de fábrica” para recuperar ' +
+        'las preguntas.</span>';
     $('inicio-resumen').innerHTML =
       'Contenido cargado: <strong>' + contenido.titulo + '</strong> — ' +
       contenido.modulos.length + ' módulos, ' + preguntas + ' preguntas.<br>' +
       'Duración estimada: <strong>~' + minutos + ' minutos</strong>, más unos 15 segundos por asistente ' +
-      'para el registro de nombres.';
+      'para el registro de nombres.<br>' + avisoExamen;
   }
 
   // ── Frases de Vera ──────────────────────────────────────
@@ -213,6 +227,7 @@
       };
       // En el puesto, irse o hablar puede ser el trabajo (una llamada real).
       window.Motor.sinAlertaAusencia = autoestudio;
+      window.Motor.unaSolaPersona = autoestudio;
       window.Motor.alLlegarTarde = function (p) {
         // Queda registrado el momento: sin esto su acta y su constancia
         // afirmarían presencia completa en una sesión a la que llegó al final.

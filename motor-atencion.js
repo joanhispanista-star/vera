@@ -44,6 +44,11 @@
        sobre alguien que estaba haciendo lo correcto — y con eso el jefe deja
        de creerle al acta, con razón. */
     sinAlertaAusencia: false,
+    /* Capacitación individual: hay UNA persona y punto. Sin esto, quien pase
+       por detrás del asesor entra al acta como "Invitado 2" — o peor, si el
+       asesor se levantó, la cara del que pasa se adopta como suya y termina
+       heredando su nombre, su atención y su constancia. */
+    unaSolaPersona: false,
     bloquearNuevas: false,    // tras el registro, una cara nueva es "Invitado"
     alAlerta: null,           // callback(persona, motivo)
     alLlegarTarde: null,      // callback(persona) cuando entra alguien con la sesión empezada
@@ -390,6 +395,7 @@
       // vuelto a sentarse en otro puesto: readoptarlo evita duplicar la fila.
       if (!ausente && window.Motor.bloquearNuevas) {
         var ausentes = personas.filter(function (q) { return !q.presente; });
+        // En individual el único ausente ES el asesor: volvió a sentarse.
         if (ausentes.length === 1) ausente = ausentes[0];
       }
       if (ausente) {
@@ -397,6 +403,10 @@
         actualizarConCara(ausente, cara, ahora);
         continue;
       }
+      // En individual no se crean personas nuevas: el que pasa por detrás no
+      // es un asistente. Si el titular está ausente, la readopción de arriba
+      // ya lo recuperó; si no, esta cara simplemente se ignora.
+      if (window.Motor.unaSolaPersona && window.Motor.bloquearNuevas) continue;
       var numeroNuevo = siguienteId++;
       var esRezagado = window.Motor.bloquearNuevas;
       var nueva = prepararPersona({
