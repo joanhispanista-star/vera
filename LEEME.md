@@ -94,6 +94,11 @@ x Cinco días hábiles. | Ese plazo no existe: son veinte días calendario.
 `+` es la correcta, `x` las incorrectas, y lo que va después de `|` es la
 explicación que Vera da al corregir. Las opciones se barajan en cada intento.
 
+**Si no aprueba, Vera vuelve a explicar.** No le dice "repasa el módulo 3" y lo
+manda otra vez al examen: le **redicta los módulos que falló** y después
+reintenta. Es lo que haría un buen capacitador con cada persona, y lo que uno
+solo no alcanza a hacer con seis asesores nuevos al mes.
+
 ## Los dos modos
 
 1. **Sala real con cámara**: apunta la cámara al grupo (o a ti solo: con una

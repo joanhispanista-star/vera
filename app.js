@@ -683,6 +683,49 @@
     });
   }
 
+  /* Repaso dirigido: se vuelven a dictar SOLO los módulos que falló. Decirle
+     "repasa el módulo 3" y ponerlo a examen otra vez no enseña nada; volver a
+     explicárselo sí. Es exactamente lo que haría un buen capacitador y lo que
+     el actual no alcanza a hacer con cada persona. */
+  function redictarModulos(titulos) {
+    var aRepasar = [];
+    contenido.modulos.forEach(function (m, i) {
+      if (titulos.indexOf(m.titulo) >= 0) aRepasar.push({ m: m, i: i });
+    });
+    if (!aRepasar.length) return Promise.resolve();
+
+    fase = 'modulo';
+    window.Motor.alertasActivas = true;
+    $('btn-duda').classList.remove('oculto');
+    var cadena = window.Vera.decir(
+      'Repasamos ' + (aRepasar.length === 1 ? 'el módulo' : 'los módulos') +
+      ' donde se te complicó. Con calma, que para eso estamos.'
+    );
+
+    aRepasar.forEach(function (x) {
+      cadena = cadena.then(esperarSiPausada).then(function () {
+        if (terminada) return;
+        pintarModulo(x.m, x.i);
+        var puntos = Promise.resolve();
+        x.m.puntos.forEach(function (punto, j) {
+          puntos = puntos.then(esperarSiPausada).then(function () {
+            if (terminada) return;
+            var lis = $('diapositiva-puntos').children;
+            for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('actual', k === j);
+            puntoEnCurso = { modulo: x.i, tituloModulo: x.m.titulo, indicePunto: j, texto: punto };
+            return decirPunto(punto);
+          });
+        });
+        return puntos;
+      });
+    });
+
+    return cadena.then(function () {
+      window.Motor.alertasActivas = false;
+      $('btn-duda').classList.add('oculto');
+    });
+  }
+
   /* Reintento: se le pregunta, no se le impone. Quien acaba de perder un examen
      tiene derecho a decir "hoy no". */
   function ofrecerReintento(res) {
@@ -692,11 +735,21 @@
         if (resuelto) return;
         resuelto = true;
         $('zona-reintento').classList.add('oculto');
-        resolver(repetir ? rondaExamen() : undefined);
+        if (!repetir) { resolver(); return; }
+        // Repasar primero, examinar después.
+        resolver(redictarModulos(res.modulosARepasar).then(function () {
+          if (terminada) return;
+          return rondaExamen();
+        }));
       };
       $('reintento-texto').textContent = 'Sacaste ' + res.nota + '% y el mínimo es ' + res.minimo +
         '%. Intento ' + intentoExamen + ' de ' + window.Examen.maxIntentos + '.' +
-        (res.modulosARepasar.length ? ' Para repasar: ' + res.modulosARepasar.join(', ') + '.' : '');
+        (res.modulosARepasar.length
+          ? ' Vera te vuelve a explicar: ' + res.modulosARepasar.join(', ') + '.'
+          : '');
+      $('btn-reintentar').textContent = res.modulosARepasar.length
+        ? 'Repasar esos módulos y volver a intentar'
+        : 'Volver a intentar';
       $('zona-reintento').classList.remove('oculto');
       $('btn-reintentar').onclick = function () { cerrar(true); };
       $('btn-no-reintentar').onclick = function () { cerrar(false); };
