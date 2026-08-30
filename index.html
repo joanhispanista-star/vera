@@ -99,6 +99,7 @@
       </label>
       <div class="datos-sesion" id="zona-solo">
         <label for="txt-mi-nombre">Tu nombre completo <span>(para tu constancia)</span></label>
+        <select id="sel-mi-nombre" class="oculto"></select>
         <input type="text" id="txt-mi-nombre" placeholder="Ej.: Camilo Restrepo" autocomplete="name">
       </div>
       <div class="botonera">
@@ -269,6 +270,15 @@
         <button id="btn-borrar-todo" class="btn btn-mini">Borrar historial</button>
       </div>
       <input type="file" id="archivo-respaldo" accept=".json,application/json" class="oculto">
+      <div class="datos-sesion" style="margin-top:18px">
+        <label for="txt-nomina">Lista del equipo
+          <span>(un nombre por línea; el asesor lo elige en vez de escribirlo, y así el historial no se parte en “Juan”, “Juan Pérez” y “Juanpa”)</span></label>
+        <textarea id="txt-nomina" rows="4" placeholder="Camilo Restrepo&#10;Diana Ruiz&#10;Andrés Gómez"
+          style="width:100%;background:var(--fondo-suave);border:1px solid var(--borde);border-radius:8px;color:var(--texto);font-family:inherit;font-size:15px;padding:10px 12px;resize:vertical"></textarea>
+        <div class="botonera" style="justify-content:flex-start;margin-top:8px">
+          <button id="btn-guardar-nomina" class="btn btn-mini">Guardar la lista</button>
+        </div>
+      </div>
       <p class="letra-menuda">
         El historial vive solo en este navegador y en este computador: no hay servidor.
         Si se borran los datos del navegador, se pierde — por eso conviene guardar un respaldo

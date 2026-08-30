@@ -48,6 +48,32 @@ ADMIN y los SOP por su cuenta.
 2. **Grupo en sala**: el modo original, con varias personas y proyector.
 3. **Modo demostración**: la sala simulada, para vender sin reunir gente.
 
+### En el puesto, una interrupción no es una falta
+
+En modo individual el asesor está en su puesto de trabajo, y levantarse porque
+lo llamó el jefe o porque entró una llamada **es** el trabajo. Por eso:
+
+- Si el puesto queda vacío seis segundos, **Vera espera**: calla, congela el
+  reloj y la medición, y al volver saluda por el nombre y repite el punto. La
+  cámara sigue encendida y la pantalla lo dice — *"solo para saber cuándo
+  vuelves, no se está midiendo nada"*.
+- El acta lo cuenta como hecho: *"3 interrupciones (~11 min de espera, no
+  medidos)"*. Sin la palabra "llamado" y **sin escalar nunca** a "Revisar con
+  el supervisor".
+- El **micrófono queda apagado** por defecto: en un piso de cobranzas la
+  escucha automática captaría las llamadas reales de los asesores de al lado, y
+  ese audio sí sale del computador. El teclado es el camino principal.
+- **Retomar**: si la sesión se corta, al abrir aparece *"quedó a medias… en el
+  módulo 4"* con botón para continuar. El acta parcial se archiva antes.
+
+### La lista del equipo
+
+En el historial se puede pegar la lista del equipo (un nombre por línea). Con
+la lista cargada, el asesor **elige** su nombre en vez de escribirlo — sin eso,
+"Juan", "Juan Pérez" y "Juanpa" se vuelven tres personas distintas y la
+evidencia se fragmenta sola, justo para el día en que hay que demostrar quién
+se capacitó. La lista viaja dentro del respaldo.
+
 ### El examen: por qué es de opción múltiple
 
 Las preguntas abiertas (`?`) se califican buscando palabras clave dentro de la

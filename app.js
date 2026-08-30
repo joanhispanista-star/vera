@@ -58,6 +58,34 @@
   }
 
   // ── Inicio ──────────────────────────────────────────────
+  /* Con lista del equipo cargada, el asesor ELIGE su nombre; sin lista, lo
+     escribe. Elegir evita que el historial de una misma persona se parta en
+     varias fichas por una tilde o un apodo. */
+  function pintarSelectorNombre() {
+    var lista = window.Historial.nomina();
+    var sel = $('sel-mi-nombre');
+    var txt = $('txt-mi-nombre');
+    if (!lista.length) {
+      sel.classList.add('oculto');
+      txt.classList.remove('oculto');
+      return;
+    }
+    sel.innerHTML = '<option value="">— elige tu nombre —</option>' +
+      lista.map(function (n) {
+        return '<option value="' + escaparHtml(n) + '">' + escaparHtml(n) + '</option>';
+      }).join('') +
+      '<option value="__otro__">No estoy en la lista</option>';
+    sel.classList.remove('oculto');
+    txt.classList.add('oculto');
+    txt.value = '';
+  }
+
+  function nombreElegido() {
+    var sel = $('sel-mi-nombre');
+    if (!sel.classList.contains('oculto') && sel.value && sel.value !== '__otro__') return sel.value;
+    return $('txt-mi-nombre').value.trim();
+  }
+
   function pintarResumen() {
     // El selector refleja los títulos reales (por si el cliente los editó).
     var sel = $('sel-curso');
@@ -153,7 +181,7 @@
     }
     autoestudio = (elegido === 'solo');
     modo = autoestudio ? 'camara' : elegido;
-    miNombre = autoestudio ? $('txt-mi-nombre').value.trim() : '';
+    miNombre = autoestudio ? nombreElegido() : '';
     grupoSesion = $('txt-grupo').value.trim();
     ir('p-sala');
     window.Vera.iniciar($('vera-contenedor'), $('vera-subtitulo'), $('vera-estado'));
@@ -1626,6 +1654,9 @@
        dato que la tumbó. Y el dato puede venir de fuera (un respaldo hecho en
        otro computador), así que cada pintado falla por su cuenta. */
     try {
+      pintarSelectorNombre();
+    } catch (e) { /* sin lista se escribe el nombre a mano */ }
+    try {
       pintarResumen();
     } catch (e) {
       $('inicio-resumen').textContent =
@@ -1666,12 +1697,30 @@
 
     // El modo autoestudio exige el nombre: la constancia es de alguien.
     $('btn-modo-solo').addEventListener('click', function () {
-      if (!$('txt-mi-nombre').value.trim()) {
-        $('txt-mi-nombre').focus();
-        $('resultado-voz').textContent = 'Escribe tu nombre para poder emitir tu constancia.';
+      if (!nombreElegido()) {
+        var sel = $('sel-mi-nombre');
+        var usandoLista = !sel.classList.contains('oculto');
+        (usandoLista ? sel : $('txt-mi-nombre')).focus();
+        $('resultado-voz').textContent = usandoLista
+          ? 'Elige tu nombre de la lista para poder emitir tu constancia.'
+          : 'Escribe tu nombre para poder emitir tu constancia.';
         return;
       }
       iniciarSesion('solo');
+    });
+
+    // "No estoy en la lista": se permite escribirlo, pero se avisa — un nombre
+    // fuera de la lista crea una ficha nueva en el historial.
+    $('sel-mi-nombre').addEventListener('change', function (ev) {
+      if (ev.target.value === '__otro__') {
+        $('txt-mi-nombre').classList.remove('oculto');
+        $('txt-mi-nombre').focus();
+        $('resultado-voz').textContent = 'Escríbelo completo, igual que aparece en la nómina: ' +
+          'si lo escribes distinto, tus capacitaciones quedan en dos fichas separadas.';
+      } else {
+        $('txt-mi-nombre').classList.add('oculto');
+        $('resultado-voz').textContent = '';
+      }
     });
     $('txt-mi-nombre').addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter' && !$('btn-modo-solo').disabled) $('btn-modo-solo').click();
@@ -1980,6 +2029,17 @@
         window.Historial.borrarPersona(quien);
         pintarHistorial();
       }
+    });
+
+    $('txt-nomina').value = window.Historial.nominaTexto();
+    $('btn-guardar-nomina').addEventListener('click', function () {
+      window.Historial.guardarNomina($('txt-nomina').value);
+      pintarSelectorNombre();
+      var n = window.Historial.nomina().length;
+      $('btn-guardar-nomina').textContent = n
+        ? 'Guardada: ' + n + (n === 1 ? ' persona' : ' personas')
+        : 'Lista vacía: se escribirá el nombre a mano';
+      setTimeout(function () { $('btn-guardar-nomina').textContent = 'Guardar la lista'; }, 2500);
     });
 
     $('btn-csv').addEventListener('click', function () {

@@ -319,6 +319,30 @@
       .sort(function (a, b) { return b.puntos.length - a.puntos.length; });
   }
 
+  /* Lista del equipo. Con seis asesores nuevos al mes y nombres escritos a
+     mano, "Juan", "Juan Perez" y "Juanpa" se vuelven tres personas distintas
+     en el historial — y la evidencia se fragmenta sola, en silencio, justo
+     para el día en que hay que demostrar quién se capacitó. Con la lista
+     cargada, el asesor elige su nombre en vez de escribirlo. */
+  var CLAVE_NOMINA = 'vera.nomina';
+
+  function nomina() {
+    var texto = leer(CLAVE_NOMINA) || '';
+    return texto.split(/\r?\n/)
+      .map(function (l) { return l.trim(); })
+      .filter(Boolean)
+      // Sin repetidos, respetando el orden en que los escribió el coordinador.
+      .filter(function (n, i, arr) {
+        return arr.findIndex(function (m) {
+          return m.toLowerCase() === n.toLowerCase();
+        }) === i;
+      });
+  }
+
+  function nominaTexto() { return leer(CLAVE_NOMINA) || ''; }
+
+  function guardarNomina(texto) { return escribir2(CLAVE_NOMINA, String(texto || '')); }
+
   // ── Exportar ────────────────────────────────────────────
   function escaparCampo(valor) {
     var texto = String(valor === null || valor === undefined ? '' : valor);
@@ -382,7 +406,12 @@
   // ── Respaldo: el historial vive solo en este navegador ──
   function exportarRespaldo() {
     descargar(nombreConFecha('vera-respaldo', 'json'),
-      JSON.stringify({ version: 1, exportado: new Date().toISOString(), actas: leerCrudo() }, null, 1),
+      JSON.stringify({
+        version: 1,
+        exportado: new Date().toISOString(),
+        nomina: nominaTexto(), // sin la lista, el respaldo restaurado deja de reconocer al equipo
+        actas: leerCrudo()
+      }, null, 1),
       'application/json;charset=utf-8');
   }
 
@@ -413,6 +442,11 @@
       actuales.push(a);
       nuevas++;
     });
+    // La lista del equipo se restaura solo si aquí no hay una: nunca se pisa
+    // la del computador que está recibiendo el respaldo.
+    if (typeof datos.nomina === 'string' && datos.nomina.trim() && !nominaTexto().trim()) {
+      guardarNomina(datos.nomina);
+    }
     if (!escribir(actuales)) return { ok: false, error: 'No se pudo guardar: el almacenamiento está lleno.' };
     return { ok: true, nuevas: nuevas, repetidas: entrantes.length - nuevas };
   }
@@ -514,6 +548,9 @@
     fijarVigencia: fijarVigencia,
     recertificaciones: recertificaciones,
     panoramaDudas: panoramaDudas,
+    nomina: nomina,
+    nominaTexto: nominaTexto,
+    guardarNomina: guardarNomina,
     calcularFolio: calcularFolio,
     esNombreGenerico: esNombreGenerico,
     csv: csv,
