@@ -64,6 +64,19 @@
       grupo: String(acta.grupo || ''),
       dictadaPor: String(acta.dictadaPor || ''),
       rescatada: !!acta.rescatada,
+      // 'individual' = un asesor solo en su puesto. Las interrupciones de ese
+      // formato son un hecho del día de trabajo, no una falta que se le anota.
+      formato: acta.formato === 'individual' ? 'individual' : 'grupo',
+      interrupciones: Number(acta.interrupciones) || 0,
+      // Dónde iba la capacitación, para poder retomarla en vez de repetirla.
+      progreso: (acta.progreso && typeof acta.progreso === 'object') ? {
+        curso: Number(acta.progreso.curso) || 0,
+        tituloCurso: String(acta.progreso.tituloCurso || ''),
+        modulo: Number(acta.progreso.modulo) || 0,
+        nombre: String(acta.progreso.nombre || ''),
+        individual: !!acta.progreso.individual
+      } : null,
+      msEnEspera: Number(acta.msEnEspera) || 0,
       dudas: Array.isArray(acta.dudas) ? acta.dudas.filter(function (d) {
         return d && typeof d === 'object';
       }).map(function (d) {

@@ -37,7 +37,13 @@
 
   window.Motor = {
     alertasActivas: false,    // la app la enciende solo mientras se dicta un módulo
-    enPausa: false,           // descanso: no se mide ni se acumula nada
+    enPausa: false,           // descanso o espera: no se mide ni se acumula nada
+    /* Capacitación individual: el asesor está en su puesto, y levantarse
+       porque lo llamó el jefe o porque entró una llamada ES el trabajo. Tratar
+       eso como falta produciría un acta que dice "Revisar con el supervisor"
+       sobre alguien que estaba haciendo lo correcto — y con eso el jefe deja
+       de creerle al acta, con razón. */
+    sinAlertaAusencia: false,
     bloquearNuevas: false,    // tras el registro, una cara nueva es "Invitado"
     alAlerta: null,           // callback(persona, motivo)
     alLlegarTarde: null,      // callback(persona) cuando entra alguien con la sesión empezada
@@ -138,6 +144,19 @@
       if (ctxOverlay) ctxOverlay.clearRect(0, 0, overlay.width, overlay.height);
     },
 
+    /* Espera (no es descanso): el asesor se levantó del puesto. Se deja de
+       medir, pero la cámara sigue encendida — es la única forma de saber
+       cuándo volvió. Se dice tal cual en pantalla: prometer "cámara apagada"
+       aquí sería mentira, y esa frase es del descanso, donde sí lo está. */
+    esperar: function () {
+      window.Motor.enPausa = true;
+      window.Motor.alertasActivas = false;
+    },
+
+    dejarDeEsperar: function () {
+      window.Motor.enPausa = false;
+    },
+
     /* Vuelve del descanso SIN recrear a las personas: se conservan nombres,
        atención acumulada y respuestas. El emparejamiento por cercanía vuelve a
        adoptar a cada quien, igual que cuando alguien regresa del baño. */
@@ -234,6 +253,8 @@
                      : p.estado === 'ojos-cerrados' ? 'ojos-cerrados'
                      : p.estado === 'hablando' ? 'hablando'
                      : 'distraido';
+          // En el puesto, irse un momento no se regaña: se espera.
+          if (window.Motor.sinAlertaAusencia && (motivo === 'ausente' || motivo === 'hablando')) continue;
           // La ausencia se anuncia UNA vez por salida: repetir el mismo aviso
           // cada 45 s inflaría los llamados hasta "revisar con supervisor".
           if (motivo === 'ausente' && p.ausenteAvisado) continue;

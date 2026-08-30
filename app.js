@@ -27,6 +27,13 @@
   var autoestudio = false;      // un asesor solo frente al computador (el caso real del cliente)
   var miNombre = '';            // se escribe al inicio en autoestudio, no se pregunta por voz
   var intentoExamen = 0;
+  var enEspera = false;         // el asesor se levantó del puesto (no es falta)
+  var esperaDesde = 0;
+  var vacioDesde = 0;
+  var interrupciones = 0;
+  var msEnEspera = 0;
+  var resolverEspera = null;
+  var moduloDeArranque = 0;     // al retomar un curso a medias
   var resultadoExamen = null;
   var resolverOpcion = null;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
@@ -173,6 +180,8 @@
         var yaEnCola = colaAlertas.some(function (a) { return a.p === p; });
         if (!yaEnCola) colaAlertas.push({ p: p, motivo: motivo });
       };
+      // En el puesto, irse o hablar puede ser el trabajo (una llamada real).
+      window.Motor.sinAlertaAusencia = autoestudio;
       window.Motor.alLlegarTarde = function (p) {
         // Queda registrado el momento: sin esto su acta y su constancia
         // afirmarían presencia completa en una sesión a la que llegó al final.
@@ -266,10 +275,13 @@
         window.Motor.calibrar(yo);
       }
       window.Motor.bloquearNuevas = true;
-      window.Vera.decir(
-        'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
-        'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
-      ).then(dictado);
+      var retoma = moduloDeArranque > 0 && moduloDeArranque < contenido.modulos.length;
+      window.Vera.decir(retoma
+        ? 'Retomamos donde quedamos, ' + (miNombre || '') + '. Vamos por el módulo ' +
+          (moduloDeArranque + 1) + ': ' + contenido.modulos[moduloDeArranque].titulo + '.'
+        : 'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
+          'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
+      ).then(function () { dictado(retoma ? moduloDeArranque : 0); });
       return;
     }
     $('btn-empezar-registro').classList.add('oculto');
@@ -350,8 +362,44 @@
 
   // ── Pausa (el descanso de media sesión) ─────────────────
   function esperarSiPausada() {
-    if (!pausada || terminada) return Promise.resolve();
-    return new Promise(function (r) { resolverPausa = r; });
+    if (terminada) return Promise.resolve();
+    if (pausada) return new Promise(function (r) { resolverPausa = r; });
+    if (enEspera) return new Promise(function (r) { resolverEspera = r; });
+    return Promise.resolve();
+  }
+
+  /* El asesor se levantó del puesto. En una sala eso sería una ausencia que se
+     anota; en su puesto de trabajo, levantarse porque lo llamó el jefe o
+     porque entró una llamada ES el trabajo. Así que Vera no regaña: espera,
+     congela el reloj y al volver repite el punto. El acta lo cuenta como
+     interrupción, sin la palabra "llamado" y sin escalar a supervisor. */
+  function entrarEnEspera() {
+    if (enEspera || terminada) return;
+    enEspera = true;
+    esperaDesde = Date.now();
+    interrupciones += 1;
+    window.Vera.callar();
+    window.Vera.detenerEscucha();
+    window.Motor.esperar();
+    $('barra-fase').textContent = 'Te espero. La cámara sigue encendida solo para saber cuándo vuelves — ' +
+      'no se está midiendo nada, y esto no cuenta en tu contra.';
+  }
+
+  function salirDeEspera() {
+    if (!enEspera) return;
+    enEspera = false;
+    msEnEspera += Date.now() - esperaDesde;
+    window.Motor.dejarDeEsperar();
+    // Borrón: la distracción de la interrupción no es del asesor.
+    window.Motor.presentes().forEach(function (p) {
+      p.ema = Math.max(p.ema, 0.9);
+      p.bocaHistoria = [];
+      p.hablandoDesdeMs = 0;
+    });
+    if (fase === 'modulo') window.Motor.alertasActivas = true;
+    repetirPedido = true; // al volver se repite el punto entero
+    window.Vera.decir('Volviste, ' + (miNombre || 'sigamos') + '. Te repito el punto.');
+    if (resolverEspera) { var r = resolverEspera; resolverEspera = null; r(); }
   }
 
   function alternarPausa() {
@@ -445,13 +493,17 @@
       });
   }
 
-  function dictado() {
+  function dictado(desdeModulo) {
     fase = 'modulo';
     $('btn-pausar').classList.remove('oculto');
     $('btn-duda').classList.remove('oculto');
+    var arranque = desdeModulo || 0;
     var cadena = Promise.resolve();
 
     contenido.modulos.forEach(function (m, i) {
+      // Los módulos ya vistos se saltan, pero SÍ cuentan como dictados: el
+      // asesor los escuchó, aunque haya sido ayer.
+      if (i < arranque) { dictado_.modulos = Math.max(dictado_.modulos, i + 1); return; }
       cadena = cadena.then(function () {
         if (terminada) return;
         dictado_.modulos = i + 1;
@@ -716,6 +768,8 @@
       $('respuesta-aviso').textContent = '';
       $('txt-respuesta').value = '';
       $('zona-respuesta').classList.remove('oculto');
+      // En el puesto no se abre el micrófono solo (ver pedirRespuestaEnVivo).
+      if (autoestudio) { $('txt-respuesta').focus(); return; }
       window.Vera.escuchar(9).then(function (oido) {
         if (resuelto) return;
         if (oido && oido.trim().length > 1) { entregar(oido.trim()); return; }
@@ -763,10 +817,19 @@
         resolver(texto);
       };
       resolverRespuesta = entregar;
-      $('respuesta-para').textContent = 'Responde ' + p.nombre + ' — por voz o con el teclado.';
+      $('respuesta-para').textContent = autoestudio
+        ? 'Responde con el teclado, ' + p.nombre + ' — o toca el micrófono si prefieres hablar.'
+        : 'Responde ' + p.nombre + ' — por voz o con el teclado.';
       $('respuesta-aviso').textContent = '';
       $('txt-respuesta').value = '';
       $('zona-respuesta').classList.remove('oculto');
+      /* En un puesto de cobranzas NO se abre el micrófono solo: captaría las
+         llamadas reales de los asesores de al lado, y ese audio SÍ sale del
+         computador (el reconocimiento del navegador lo procesa en servidores
+         de Google o Microsoft). Serían datos de deudores de terceros saliendo
+         de la empresa por una capacitación. Aquí el teclado es el camino
+         principal; el micrófono, solo si el asesor lo pide con el botón. */
+      if (autoestudio) { $('txt-respuesta').focus(); return; }
       // Primer intento automático por voz; si no funciona, se dice POR QUÉ
       // en pantalla en vez de fallar en silencio, y quedan los botones.
       window.Vera.escuchar(9).then(function (oido) {
@@ -890,6 +953,21 @@
       // Cada 15 s se guarda el borrador: si se cae la pestaña o el computador,
       // el acta de lo alcanzado se puede rescatar al volver a abrir.
       if (++ticksChips % 30 === 0) guardarBorrador();
+
+      // Autoestudio: si el puesto queda vacío, Vera espera en vez de dictarle
+      // a una silla. Seis segundos de margen para no reaccionar a que alguien
+      // se agache a recoger algo.
+      if (autoestudio && !pausada && !terminada &&
+          (fase === 'modulo' || fase === 'pregunta' || fase === 'examen' || fase === 'descargos')) {
+        var hayAlguien = window.Motor.presentes().length > 0;
+        if (!hayAlguien) {
+          if (!vacioDesde) vacioDesde = Date.now();
+          else if (!enEspera && Date.now() - vacioDesde > 6000) entrarEnEspera();
+        } else {
+          vacioDesde = 0;
+          if (enEspera) salirDeEspera();
+        }
+      }
       var personas = window.Motor.personas();
       if (fase === 'deteccion') {
         var n = window.Motor.presentes().length;
@@ -1049,6 +1127,17 @@
         ' de ' + cob.modulosTotal + ' módulos';
     }
 
+    /* Las interrupciones del puesto se cuentan como HECHO del día de trabajo,
+       nunca como falta: en cobranza, levantarse porque entró una llamada es
+       hacer el trabajo. Por eso no llevan la palabra "llamado" ni escalan a
+       "Revisar con el supervisor". */
+    if (acta.formato === 'individual' && acta.interrupciones) {
+      var minEspera = Math.round((acta.msEnEspera || 0) / 60000);
+      $('acta-datos').textContent += ' · ' + acta.interrupciones +
+        (acta.interrupciones === 1 ? ' interrupción' : ' interrupciones') +
+        (minEspera >= 1 ? ' (~' + minEspera + ' min de espera, no medidos)' : '');
+    }
+
     // Las dudas del grupo: el dato que ningún capacitador humano entrega.
     var lasDudas = acta.dudas || [];
     if (lasDudas.length) {
@@ -1121,6 +1210,9 @@
       duracionMin: duracionMin,
       grupo: grupoSesion,
       dudas: dudas.slice(),
+      interrupciones: interrupciones,
+      msEnEspera: msEnEspera,
+      formato: autoestudio ? 'individual' : 'grupo',
       cobertura: { modulosDictados: dictado_.modulos, modulosTotal: contenido.modulos.length },
       personas: personas.map(function (p) {
         return {
@@ -1152,6 +1244,16 @@
     var minutos = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados - pausaCorrida) / 60000));
     var borrador = instantanea(personas, minutos);
     borrador.rescatada = true; // si se recupera, el acta nace marcada
+    // Dónde iba: un curso de 40 minutos se interrumpe de verdad (una reunión,
+    // el turno que empieza), y volver a empezar de cero es la forma más rápida
+    // de que el asesor no lo termine nunca.
+    borrador.progreso = {
+      curso: window.ContenidoLib.indiceActivo(),
+      tituloCurso: contenido.titulo,
+      modulo: puntoEnCurso ? puntoEnCurso.modulo : 0,
+      nombre: miNombre,
+      individual: autoestudio
+    };
     window.Historial.guardarBorrador(borrador);
   }
 
@@ -1279,6 +1381,34 @@
       ', ' + cuando + ', ' + borrador.personas.length +
       (borrador.personas.length === 1 ? ' asistente' : ' asistentes') + ').';
     $('aviso-rescate').classList.remove('oculto');
+
+    /* Continuar donde iba: retomar es lo que hace posible un curso de 40
+       minutos en un piso de cobranzas, donde la sesión se interrumpe de
+       verdad. Solo se ofrece cuando el borrador trae progreso individual: en
+       grupo no tiene sentido "retomar" con otra gente en la sala. */
+    var prog = borrador.progreso;
+    if (prog && prog.individual && prog.modulo > 0) {
+      $('btn-continuar').classList.remove('oculto');
+      $('rescate-texto').textContent = (prog.nombre ? prog.nombre + ', quedó' : 'Quedó') +
+        ' a medias la capacitación “' + prog.tituloCurso + '” (' + cuando +
+        '), en el módulo ' + (prog.modulo + 1) + '.';
+      $('btn-continuar').addEventListener('click', function () {
+        // El acta a medias se archiva antes de empezar la nueva: es evidencia
+        // de lo que sí se alcanzó, y el borrador se va a sobrescribir.
+        var previa = window.Historial.leerBorrador();
+        if (previa) {
+          previa.id = 's' + Date.now();
+          previa.rescatada = true;
+          if (window.Historial.guardar(previa)) window.Historial.borrarBorrador();
+        }
+        $('aviso-rescate').classList.add('oculto');
+        window.ContenidoLib.elegir(prog.curso);
+        pintarResumen();
+        $('txt-mi-nombre').value = prog.nombre || '';
+        moduloDeArranque = prog.modulo;
+        ir('p-consentimiento');
+      });
+    }
 
     $('btn-rescatar').addEventListener('click', function () {
       var acta = window.Historial.leerBorrador();
