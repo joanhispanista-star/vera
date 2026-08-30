@@ -90,12 +90,19 @@
     var total = respuestas.length;
     var nota = total ? Math.round((bien / total) * 100) : 0;
     var minimo = notaMinima();
+    /* El mínimo se guarda en porcentaje, pero un examen se vive en preguntas:
+       con 4 preguntas y 80%, "puedes fallar" es mentira — hay que acertarlas
+       todas. Se calcula cuántos aciertos hacen falta de verdad, para poder
+       decírselo al asesor en los términos en que él lo va a experimentar. */
+    var minimoAciertos = total ? Math.ceil((minimo / 100) * total) : 0;
     return {
       bien: bien,
       total: total,
       nota: nota,
       minimo: minimo,
-      aprobado: total > 0 && nota >= minimo,
+      minimoAciertos: minimoAciertos,
+      puedeFallar: Math.max(0, total - minimoAciertos),
+      aprobado: total > 0 && bien >= minimoAciertos,
       // Los que más se fallaron van primero: es el orden en que conviene repasar.
       modulosARepasar: Object.keys(falladosPorModulo).sort(function (a, b) {
         return falladosPorModulo[b] - falladosPorModulo[a];
@@ -106,24 +113,43 @@
   /* Lo que Vera dice al entregar la nota. Aprobar se celebra; no aprobar se
      dice sin humillar y con la instrucción concreta de qué repasar: el asesor
      nuevo ya llega asustado, y un examen que lo trate mal no enseña nada. */
+  /* Cómo se le anuncia el examen: en preguntas, no en porcentaje. "Necesitas
+     80%" no le dice a nadie cuántas puede fallar; "de 6, tienes que acertar 5"
+     sí — y cuando el mínimo exige perfección, hay que decirlo con esas
+     palabras en vez de dejar que lo descubra al final. */
+  function fraseAnuncio(nombre, total) {
+    var minAciertos = Math.ceil((notaMinima() / 100) * total);
+    var puedeFallar = Math.max(0, total - minAciertos);
+    if (puedeFallar === 0) {
+      return 'Llegó el examen, ' + nombre + '. Son ' + total +
+        (total === 1 ? ' pregunta' : ' preguntas') + ', y para aprobar hay que responderlas ' +
+        'todas bien: no puedes fallar ninguna.';
+    }
+    return 'Llegó el examen, ' + nombre + '. Son ' + total + ' preguntas y necesitas acertar ' +
+      'al menos ' + minAciertos + ': puedes fallar ' + puedeFallar +
+      (puedeFallar === 1 ? '.' : '.');
+  }
+
   function fraseResultado(nombre, resultado, intento) {
     if (resultado.aprobado) {
-      return '¡Felicitaciones, ' + nombre + '! Sacaste ' + resultado.nota + ' por ciento, ' +
-        'con ' + resultado.bien + ' de ' + resultado.total + ' respuestas correctas. ' +
+      return '¡Felicitaciones, ' + nombre + '! Acertaste ' + resultado.bien + ' de ' +
+        resultado.total + ', o sea ' + resultado.nota + ' por ciento. ' +
         'Quedas aprobado y tu constancia queda lista.';
     }
+    var faltaron = resultado.minimoAciertos - resultado.bien;
     var repaso = resultado.modulosARepasar.length
       ? ' Te recomiendo repasar sobre todo: ' + resultado.modulosARepasar.slice(0, 2).join(', ') + '.'
       : '';
     if (intento >= MAX_INTENTOS) {
-      return nombre + ', sacaste ' + resultado.nota + ' por ciento y el mínimo es ' +
-        resultado.minimo + '.' + repaso +
+      return nombre + ', acertaste ' + resultado.bien + ' de ' + resultado.total +
+        ' y necesitabas ' + resultado.minimoAciertos + '.' + repaso +
         ' Ya hiciste los intentos de hoy, así que esto queda en el acta para que lo revises ' +
         'con tu supervisor y volvamos otro día. No es un castigo: es que todavía no estás listo ' +
         'para el teléfono, y soltarte así sería peor.';
     }
-    return nombre + ', sacaste ' + resultado.nota + ' por ciento y el mínimo es ' +
-      resultado.minimo + '.' + repaso +
+    return nombre + ', acertaste ' + resultado.bien + ' de ' + resultado.total +
+      ' y necesitabas ' + resultado.minimoAciertos +
+      (faltaron === 1 ? ': te faltó una.' : '.') + repaso +
       ' Tranquilo, esto pasa. Repasamos y lo volvemos a intentar.';
   }
 
@@ -131,6 +157,7 @@
     armar: armar,
     calificar: calificar,
     fraseResultado: fraseResultado,
+    fraseAnuncio: fraseAnuncio,
     notaMinima: notaMinima,
     fijarNotaMinima: fijarNotaMinima,
     get maxIntentos() { return MAX_INTENTOS; }

@@ -95,10 +95,28 @@
     $('contenido-repaso').innerHTML = contenido.modulos.map(function (m, i) {
       var preguntas = (m.preguntas || []).map(function (q, j) {
         var id = 'r' + i + '-' + j;
+        // Las de opción múltiple traen su correcta y el porqué; las abiertas,
+        // la respuesta modelo. Sin esto el repaso decía "Sin respuesta modelo"
+        // justo en las preguntas que sí tienen respuesta.
+        var respuesta;
+        if (q.tipo === 'opciones') {
+          var buena = (q.opciones || []).filter(function (o) { return o.correcta; })[0];
+          respuesta = buena
+            ? escapar(buena.texto) + (buena.porQue ? '<br><br>' + escapar(buena.porQue) : '')
+            : 'Esta pregunta todavía no tiene respuesta marcada.';
+        } else {
+          respuesta = escapar(q.respuestaModelo || 'Esta pregunta todavía no tiene respuesta escrita.');
+        }
+        var opciones = q.tipo === 'opciones'
+          ? '<ul style="list-style:none;margin:8px 0 0">' + (q.opciones || []).map(function (o) {
+              return '<li style="padding:4px 0 4px 16px;position:relative;color:var(--texto-suave)">' +
+                '<span style="position:absolute;left:0">·</span>' + escapar(o.texto) + '</li>';
+            }).join('') + '</ul>'
+          : '';
         return '<div class="tarjeta-pregunta">' +
-          '<div class="p">' + escapar(q.texto) + '</div>' +
+          '<div class="p">' + escapar(q.texto) + '</div>' + opciones +
           '<button class="btn btn-mini" data-ver="' + id + '">Ver la respuesta</button>' +
-          '<div class="r oculto" id="' + id + '">' + escapar(q.respuestaModelo || 'Sin respuesta modelo.') + '</div>' +
+          '<div class="r oculto" id="' + id + '">' + respuesta + '</div>' +
           '</div>';
       }).join('');
       return '<div class="modulo"><h2>' + escapar(m.titulo) + '</h2><ul>' +

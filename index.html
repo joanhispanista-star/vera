@@ -48,6 +48,7 @@
         <button id="btn-editar-contenido" class="btn btn-secundario">Editar contenido</button>
         <button id="btn-historial" class="btn btn-secundario">Historial y constancias</button>
         <a class="btn btn-secundario" href="repaso.html" target="_blank" rel="noopener">Repaso para el celular</a>
+        <a class="btn btn-secundario" href="extraer.html" target="_blank" rel="noopener" title="Convierte lo que sabe alguien del equipo en un curso que Vera puede dictar">Crear un curso nuevo</a>
       </div>
       <p class="letra-menuda">
         Vera es una inteligencia artificial y así se presenta ante el grupo.
@@ -309,9 +310,14 @@
   <div class="modal-cuerpo">
     <h2>Contenido de la capacitación</h2>
     <p class="letra-menuda">
-      Formato: <code># Título del módulo</code> inicia un módulo, <code>- </code> es un punto que Vera lee,
-      y <code>? pregunta | palabras clave separadas por coma | respuesta modelo</code> es la pregunta del módulo.
-      La primera línea es el título de la capacitación.
+      La primera línea es el título del curso. Después:
+      <code># Título</code> inicia un módulo y <code>- </code> es un punto que Vera lee en voz alta.<br>
+      <strong>Preguntas del examen</strong> (las únicas que Vera puede calificar):
+      <code>* la pregunta</code>, y debajo <code>+ opción correcta | por qué</code> y
+      <code>x opción incorrecta | por qué</code>.<br>
+      <strong>Preguntas abiertas</strong> (sirven durante el dictado, no para la nota):
+      <code>? pregunta | palabras clave | respuesta modelo</code>.<br>
+      Las líneas que no empiezan por esos signos se ignoran: sirven para dejar notas.
     </p>
     <textarea id="txt-contenido" spellcheck="false"></textarea>
     <div class="botonera">

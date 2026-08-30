@@ -118,6 +118,7 @@
             bien: Number(p.examen.bien) || 0,
             total: Number(p.examen.total) || 0,
             aprobado: !!p.examen.aprobado,
+            incompleto: !!p.examen.incompleto,
             intento: Number(p.examen.intento) || 1
           } : null,
           paraSupervisor: !!p.paraSupervisor,
@@ -412,7 +413,8 @@
   function csv(soloReales) {
     var filas = [['Fecha', 'Curso', 'Modo', 'Duración (min)', 'Grupo', 'Asistente', 'Presencia',
                   'Atención (%)', 'Llamados', 'Conversa (min)', 'Aciertos', 'Preguntas calificables',
-                  'Sin calificar', 'Aclaración del asistente', 'Revisar']];
+                  'Sin calificar', 'Nota del examen (%)', 'Resultado', 'Intento',
+                  'Aclaración del asistente', 'Revisar']];
     listar().forEach(function (s) {
       if (soloReales && s.modo !== 'camara') return;
       s.personas.forEach(function (p) {
@@ -424,7 +426,14 @@
           p.atencion === null ? '' : p.atencion,
           p.llamados,
           p.conversaMs > 45000 ? Math.round(p.conversaMs / 60000) : 0,
-          ac.bien, ac.total, ac.sinCalificar, p.descargo,
+          ac.bien, ac.total, ac.sinCalificar,
+          p.examen && p.examen.total ? p.examen.nota : '',
+          p.examen && p.examen.total
+            ? (p.examen.incompleto ? 'EXAMEN INCOMPLETO'
+               : (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO'))
+            : '',
+          p.examen && p.examen.total ? p.examen.intento : '',
+          p.descargo,
           p.paraSupervisor ? 'SI' : ''
         ]);
       });

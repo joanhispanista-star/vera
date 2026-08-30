@@ -627,7 +627,16 @@
      repasar y se puede reintentar. Nadie sale con constancia de aprobación
      sin haberla ganado: es el punto entero del producto para este cliente. */
   function rondaExamen() {
-    var quien = window.Motor.presentes()[0] || window.Motor.personas()[0];
+    /* Al asesor que se registró, no a "la primera cara presente": si alguien
+       pasa por detrás en el momento equivocado, presentes()[0] puede ser otra
+       persona y el examen —con su constancia— se le atribuiría a quien no lo
+       presentó. */
+    var todas = window.Motor.personas();
+    var quien = null;
+    if (miNombre) {
+      quien = todas.filter(function (p) { return p.nombre === miNombre; })[0] || null;
+    }
+    if (!quien) quien = window.Motor.presentes()[0] || todas[0];
     if (!quien) return Promise.resolve();
 
     var armado = window.Examen.armar(contenido);
@@ -648,11 +657,9 @@
 
     var cadena = window.Vera.decir(
       (intentoExamen === 1
-        ? 'Muy bien, ' + quien.nombre + '. Llegó el examen: son ' + armado.preguntas.length +
-          (armado.preguntas.length === 1 ? ' pregunta' : ' preguntas') + ', y necesitas ' +
-          window.Examen.notaMinima() + ' por ciento para aprobar.'
+        ? window.Examen.fraseAnuncio(quien.nombre, armado.preguntas.length)
         : 'Vamos con el intento número ' + intentoExamen + '. Con calma, ' + quien.nombre + '.') +
-      ' Responde en voz alta o escribiendo.'
+      ' Elige la respuesta tocando el botón.'
     );
 
     armado.preguntas.forEach(function (item, idx) {
@@ -668,7 +675,17 @@
     });
 
     return cadena.then(function () {
-      if (terminada) return;
+      if (terminada) {
+        /* Se cortó el examen a mitad. Sin esto, el acta guardaba solo las
+           respuestas alcanzadas y podía salir "3 de 3, aprobado" sobre un
+           examen que nunca se terminó. */
+        quien.examen = {
+          nota: 0, minimo: window.Examen.notaMinima(), bien: 0,
+          total: armado.preguntas.length, aprobado: false,
+          intento: intentoExamen, incompleto: true
+        };
+        return;
+      }
       var res = window.Examen.calificar(quien.respuestas.map(function (r, i) {
         return { veredicto: r.veredicto, tituloModulo: armado.preguntas[i] ? armado.preguntas[i].tituloModulo : '' };
       }));
@@ -949,6 +966,15 @@
         // Pregunta de opción múltiple: se responde con botones, sin micrófono
         // y sin ambigüedad de calificación.
         if (q.tipo === 'opciones') {
+          // Se barajan también fuera del examen: si en la práctica la correcta
+          // siempre es la primera, se aprende la posición y no el contenido.
+          if (!q.barajada) {
+            for (var z = q.opciones.length - 1; z > 0; z--) {
+              var w = Math.floor(Math.random() * (z + 1));
+              var aux = q.opciones[z]; q.opciones[z] = q.opciones[w]; q.opciones[w] = aux;
+            }
+            q.barajada = true;
+          }
           if (modo === 'simulacion') {
             // En el demo se elige una opción (la correcta salvo Jorge, que falla
             // la primera) para que la escena se vea completa.
@@ -1157,8 +1183,11 @@
       }).join(' ');
       var ac = window.Historial.aciertos(p);
       var respuestas = p.examen && p.examen.total
-        ? '<b>' + p.examen.nota + '%</b> ' + (p.examen.aprobado ? '✔ aprobó' : '✘ no aprobó') +
-          (p.examen.intento > 1 ? ' (intento ' + p.examen.intento + ')' : '')
+        ? (p.examen.incompleto
+            ? '<b>examen sin terminar</b>'
+            : '<b>' + p.examen.bien + '/' + p.examen.total + '</b> (' + p.examen.nota + '%) ' +
+              (p.examen.aprobado ? '✔ aprobó' : '✘ no aprobó') +
+              (p.examen.intento > 1 ? ' · intento ' + p.examen.intento : ''))
         : ((p.respuestas || []).length
             ? marcas + (ac.total > 1 ? ' <b>(' + ac.bien + '/' + ac.total + ')</b>' : '')
             : 'no le tocó pregunta');
@@ -1370,8 +1399,10 @@
     ];
     // La nota del examen manda sobre el conteo suelto de preguntas.
     if (p.examen && p.examen.total) {
-      datos.push({ valor: p.examen.nota + '%', rotulo: 'Nota del examen' });
-      datos.push({ valor: p.examen.aprobado ? 'APROBADO' : 'NO APROBADO', rotulo: 'Resultado' });
+      datos.push({ valor: p.examen.incompleto ? '—' : p.examen.nota + '%',
+                   rotulo: p.examen.incompleto ? 'Examen' : 'Nota (' + p.examen.bien + ' de ' + p.examen.total + ')' });
+      datos.push({ valor: p.examen.incompleto ? 'SIN TERMINAR'
+                        : (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO'), rotulo: 'Resultado' });
     } else {
       // "Acertadas" solo sobre las preguntas que de verdad se pudieron calificar.
       if (ac.total) datos.push({ valor: ac.bien + ' de ' + ac.total, rotulo: 'Preguntas acertadas' });
@@ -1391,7 +1422,9 @@
       // Quien no aprobó NO recibe un papel que parezca diploma: recibe una
       // constancia de asistencia, que es lo único cierto.
       (p.examen && p.examen.total && !p.examen.aprobado
-        ? '<div class="c-sello-demo c-sello-aviso">NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA</div>' : '') +
+        ? '<div class="c-sello-demo c-sello-aviso">' +
+          (p.examen.incompleto ? 'EXAMEN SIN TERMINAR — CONSTANCIA DE ASISTENCIA'
+                               : 'NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA') + '</div>' : '') +
       '<div class="c-marca">VERA · CAPACITADORA VIRTUAL</div>' +
       '<h1>' + (p.examen && p.examen.total && !p.examen.aprobado
         ? 'Constancia de asistencia' : 'Constancia de capacitación') + '</h1>' +

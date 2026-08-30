@@ -184,8 +184,13 @@
 
   // ── Del formulario al curso ─────────────────────────────
   function lineas(texto) {
-    return String(texto || '').split('\n')
-      .map(function (l) { return l.trim().replace(/^[-•*\d.)\s]+/, '').trim(); })
+    return String(texto || '').split(/\r?\n/)
+      .map(function (l) {
+        // Se quitan las viñetas y la numeración que la gente escribe por
+        // costumbre ("1. ", "- ", "• "), pero NO un número que sea parte de la
+        // frase: "30 días de mora" perdía el 30 y quedaba "días de mora".
+        return l.trim().replace(/^\s*(?:[-•*]+\s*|\d{1,2}\s*[.)]\s+)/, '').trim();
+      })
       .filter(Boolean);
   }
 
@@ -204,6 +209,7 @@
 
     BLOQUES.forEach(function (b) {
       var puntos = [];
+      var pasoN = 0; // corrido por MÓDULO: dos campos de pasos seguidos no reinician en 1
       b.campos.forEach(function (c) {
         var valor = String(datos[c.id] || '').trim();
         if (!valor) { vacios.push(c.label); return; }
@@ -212,8 +218,9 @@
             puntos.push(c.tipo === 'riesgo' ? 'Ojo con esto: ' + frase(l) : frase(l));
           });
         } else if (c.tipo === 'pasos') {
-          lineas(valor).forEach(function (l, i) {
-            puntos.push('Paso ' + (i + 1) + ': ' + frase(l));
+          lineas(valor).forEach(function (l) {
+            pasoN += 1;
+            puntos.push('Paso ' + pasoN + ': ' + frase(l));
           });
         } else {
           puntos.push(frase(valor));
@@ -229,11 +236,22 @@
       return 'Todavía no hay nada respondido. Contesta al menos una pregunta y vuelve a generar.';
     }
 
-    salida.push('# ANTES DE USAR ESTE CURSO (borrar este módulo al terminar)');
-    salida.push('- Este borrador salió de lo que respondió quien sabe hacer el trabajo. Léelo completo en voz alta: si algo suena raro dicho, hay que reescribirlo.');
-    salida.push('- Al curso le faltan las preguntas. Agrégalas con el formato de opción múltiple, que es el único que Vera puede calificar en un examen.');
+    /* Las advertencias van como COMENTARIOS, no como módulo. El parser de
+       contenido.js ignora las líneas que no empiezan por #, -, ?, *, + o x,
+       así que estas se ven en el editor y no las dice nadie. Antes eran un
+       módulo de verdad, y Vera terminaba leyéndole al asesor "borrar este
+       módulo al terminar". */
+    salida.push('');
+    salida.push('>> ANTES DE USAR ESTE CURSO (estas líneas no las dice Vera):');
+    salida.push('>> 1. Léelo completo en voz alta. Si algo suena raro dicho, reescríbelo.');
+    salida.push('>> 2. Faltan las preguntas del examen. Agrégalas con el formato de opción');
+    salida.push('>>    múltiple, que es el único que Vera puede calificar:');
+    salida.push('>>       * ¿La pregunta?');
+    salida.push('>>       + La correcta | por qué es la correcta');
+    salida.push('>>       x Una incorrecta | por qué está mal');
+    salida.push('>> 3. Sin al menos una pregunta así, el curso no tiene examen ni nota.');
     if (vacios.length) {
-      salida.push('- Quedaron ' + vacios.length + ' preguntas sin responder: ' +
+      salida.push('>> 4. Quedaron ' + vacios.length + ' preguntas sin responder: ' +
         vacios.slice(0, 5).join('; ') + (vacios.length > 5 ? '; y otras más.' : '.'));
     }
     return salida.join('\n');
