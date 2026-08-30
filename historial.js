@@ -343,6 +343,55 @@
 
   function guardarNomina(texto) { return escribir2(CLAVE_NOMINA, String(texto || '')); }
 
+  /* Los números del piloto. Sirven para una sola conversación, y es la que
+     decide si esto se queda: la del jefe preguntando "¿y esto sí sirvió?".
+     La cifra que más pesa no es cuánta gente pasó — es cuántas HORAS de
+     capacitación se dictaron sin que un capacitador humano estuviera ahí. */
+  function resumenPiloto(desdeIso) {
+    var desde = desdeIso ? new Date(desdeIso).getTime() : 0;
+    var sesiones = listar().filter(function (s) {
+      if (s.modo !== 'camara') return false; // una demostración no capacitó a nadie
+      var t = new Date(s.fecha).getTime();
+      return !isNaN(t) && t >= desde;
+    });
+
+    var gente = {}, minutos = 0, conExamen = 0, aprobados = 0, primerIntento = 0;
+    var interrupciones = 0, individuales = 0;
+
+    sesiones.forEach(function (s) {
+      minutos += s.duracionMin || 0;
+      interrupciones += s.interrupciones || 0;
+      if (s.formato === 'individual') individuales += 1;
+      s.personas.forEach(function (p) {
+        if (!esNombreGenerico(p.nombre)) gente[p.nombre.toLowerCase().trim()] = true;
+        if (p.examen && p.examen.total) {
+          conExamen += 1;
+          if (p.examen.aprobado) {
+            aprobados += 1;
+            if (p.examen.intento === 1) primerIntento += 1;
+          }
+        }
+      });
+    });
+
+    var personas = Object.keys(gente).length;
+    return {
+      sesiones: sesiones.length,
+      individuales: individuales,
+      personas: personas,
+      // Horas dictadas sin capacitador humano presente: el argumento entero.
+      horas: Math.round((minutos / 60) * 10) / 10,
+      minutosPromedio: sesiones.length ? Math.round(minutos / sesiones.length) : 0,
+      conExamen: conExamen,
+      aprobados: aprobados,
+      // Solo se calcula sobre quienes SÍ presentaron examen: sacar un
+      // porcentaje sobre todos inflaría el resultado con los que no lo tomaron.
+      tasaAprobacion: conExamen ? Math.round((aprobados / conExamen) * 100) : null,
+      tasaPrimerIntento: conExamen ? Math.round((primerIntento / conExamen) * 100) : null,
+      interrupciones: interrupciones
+    };
+  }
+
   // ── Exportar ────────────────────────────────────────────
   function escaparCampo(valor) {
     var texto = String(valor === null || valor === undefined ? '' : valor);
@@ -548,6 +597,7 @@
     fijarVigencia: fijarVigencia,
     recertificaciones: recertificaciones,
     panoramaDudas: panoramaDudas,
+    resumenPiloto: resumenPiloto,
     nomina: nomina,
     nominaTexto: nominaTexto,
     guardarNomina: guardarNomina,

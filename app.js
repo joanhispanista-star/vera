@@ -1584,6 +1584,43 @@
       return;
     }
 
+    if (vistaHistorial === 'resultados') {
+      var r = window.Historial.resumenPiloto();
+      if (!r.sesiones) {
+        cuerpo.innerHTML = '<div class="vacio-historial">Todavía no hay capacitaciones reales.<br>' +
+          'Aquí van a salir los números del piloto: cuánta gente pasó, cuántas horas se dictaron ' +
+          'y cómo les fue en el examen. Las demostraciones no cuentan.</div>';
+        return;
+      }
+      var cifras = [
+        { valor: r.personas, rotulo: r.personas === 1 ? 'persona capacitada' : 'personas capacitadas' },
+        { valor: r.horas + ' h', rotulo: 'dictadas sin capacitador humano presente', destacada: true },
+        { valor: r.sesiones, rotulo: (r.sesiones === 1 ? 'sesión' : 'sesiones') +
+            (r.individuales ? ' (' + r.individuales + ' individuales)' : '') },
+        { valor: r.minutosPromedio + ' min', rotulo: 'dura en promedio una capacitación' }
+      ];
+      if (r.conExamen) {
+        cifras.push({ valor: r.tasaAprobacion + '%', rotulo: 'aprobó el examen (' + r.aprobados +
+          ' de ' + r.conExamen + ' que lo presentaron)', destacada: true });
+        cifras.push({ valor: r.tasaPrimerIntento + '%', rotulo: 'aprobó al primer intento' });
+      }
+      cuerpo.innerHTML = '<div class="cifras">' + cifras.map(function (c) {
+        return '<div class="cifra' + (c.destacada ? ' destacada' : '') + '">' +
+          '<div class="valor">' + c.valor + '</div>' +
+          '<div class="rotulo">' + c.rotulo + '</div></div>';
+      }).join('') + '</div>' +
+      '<p class="letra-menuda">' +
+        'Las horas dictadas son el número que responde “¿esto sirvió?”: es tiempo de ' +
+        'capacitación entregado sin que un capacitador estuviera ahí. ' +
+        (r.conExamen
+          ? 'La aprobación se calcula solo sobre quienes presentaron examen — sacarla sobre todos la inflaría. '
+          : 'Todavía nadie ha presentado examen: por eso no hay tasa de aprobación. ') +
+        (r.interrupciones ? 'Hubo ' + r.interrupciones + ' interrupciones de puesto, que no son faltas. ' : '') +
+        'Para llevar esto a una reunión, exporta el CSV: trae el detalle por persona.' +
+      '</p>';
+      return;
+    }
+
     if (vistaHistorial === 'dudas') {
       var panorama = window.Historial.panoramaDudas(incluirDemos).filter(function (c) {
         return !filtro || c.curso.toLowerCase().indexOf(filtro) >= 0;

@@ -492,6 +492,19 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   margin: 0 6px;
 }
 
+/* Tablero del piloto: pocas cifras, grandes, para una sola conversación. */
+.cifras { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.cifra {
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 16px 20px;
+  flex: 1 1 150px;
+}
+.cifra .valor { font-size: 30px; font-weight: 800; color: var(--acento); line-height: 1.1; }
+.cifra .rotulo { font-size: 12px; color: var(--texto-suave); margin-top: 6px; line-height: 1.4; }
+.cifra.destacada { border-color: var(--acento); }
+
 /* ── Constancia ───────────────────────────────────────── */
 .constancia-marco { max-width: 900px; margin: 0 auto; }
 .constancia {

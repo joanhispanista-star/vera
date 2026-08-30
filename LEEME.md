@@ -143,6 +143,19 @@ auditoría o la SIC pregunta por la Ley 2300.
 - **Borrar los datos de una persona**: la Ley 1581 le da ese derecho a
   cualquier asistente, y se hace desde su ficha.
 
+## Los números del piloto
+
+Pestaña **"Resultados"** del historial. Responde la única pregunta que decide
+si esto se queda: *"¿y esto sí sirvió?"*.
+
+La cifra que más pesa no es cuánta gente pasó — son las **horas de capacitación
+dictadas sin que un capacitador humano estuviera ahí**. Junto a eso: personas
+capacitadas, duración promedio, tasa de aprobación (calculada **solo sobre
+quienes presentaron examen**; sacarla sobre todos la inflaría) y cuántos
+aprobaron al primer intento.
+
+Para llevarlo a una reunión, el CSV trae el detalle por persona.
+
 ## Lo que ningún capacitador humano entrega
 
 **El botón "🙋 No entendí"** (en la sala, durante el dictado). Vera repite el
