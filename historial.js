@@ -121,6 +121,10 @@
             incompleto: !!p.examen.incompleto,
             intento: Number(p.examen.intento) || 1
           } : null,
+          // Un examen empezado y nunca calificado: sus aciertos parciales no
+          // pueden leerse como nota en el acta, el CSV ni la constancia.
+          examenAbandonado: !!p.examenAbandonado,
+          examenPreguntasTotal: Number(p.examenPreguntasTotal) || 0,
           paraSupervisor: !!p.paraSupervisor,
           respuestas: Array.isArray(p.respuestas) ? p.respuestas.filter(function (r) {
             return r && typeof r === 'object';
@@ -157,6 +161,9 @@
      contar como acierto: la constancia diría "2 de 2 acertadas" sobre algo que
      nadie evaluó. Se cuentan aparte. */
   function aciertos(persona) {
+    // De un examen interrumpido no salen "aciertos": salen respuestas sueltas
+    // de algo que nunca se terminó de medir.
+    if (persona.examenAbandonado) return { bien: 0, total: 0, sinCalificar: 0, interrumpido: true };
     var bien = 0, total = 0, sinCalificar = 0;
     (persona.respuestas || []).forEach(function (r) {
       if (r.veredicto === 'correcta') { bien++; total++; }
@@ -429,9 +436,8 @@
           ac.bien, ac.total, ac.sinCalificar,
           p.examen && p.examen.total ? p.examen.nota : '',
           p.examen && p.examen.total
-            ? (p.examen.incompleto ? 'EXAMEN INCOMPLETO'
-               : (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO'))
-            : '',
+            ? (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO')
+            : (p.examenAbandonado ? 'EXAMEN INTERRUMPIDO — SIN NOTA' : ''),
           p.examen && p.examen.total ? p.examen.intento : '',
           p.descargo,
           p.paraSupervisor ? 'SI' : ''

@@ -35,6 +35,9 @@
   var resolverEspera = null;
   var moduloDeArranque = 0;     // al retomar un curso a medias
   var resultadoExamen = null;
+  var examenEnCurso = false;    // examen empezado y todavía SIN calificar
+  var examinado = null;         // a quién se le está tomando
+  var examenPreguntasTotal = 0; // cuántas traía el examen que se interrumpió
   var resolverOpcion = null;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
@@ -655,6 +658,18 @@
     quien.respuestas = []; // el examen se califica solo con este intento
     $('btn-duda').classList.add('oculto'); // en el examen no se repite el contenido
 
+    /* Desde aquí y hasta que calificar() entregue la nota hay un examen
+       ABIERTO. Si la sesión se corta en medio, p.examen no alcanza a existir
+       —mostrarActa() corre síncrono y el .then de abajo es un microtask que
+       llega tarde— pero p.respuestas ya trae los aciertos parciales. Sin esta
+       marca el acta los pinta como resultado completo ("2 de 2") y la
+       constancia sale con "Preguntas acertadas", sin decir en ninguna parte
+       que hubo examen y se abandonó. No se detecta con `fase`: hacerPregunta()
+       la cambia a 'pregunta' y a 'modulo' entre pregunta y pregunta. */
+    examenEnCurso = true;
+    examinado = quien;
+    examenPreguntasTotal = armado.preguntas.length;
+
     var cadena = window.Vera.decir(
       (intentoExamen === 1
         ? window.Examen.fraseAnuncio(quien.nombre, armado.preguntas.length)
@@ -675,23 +690,17 @@
     });
 
     return cadena.then(function () {
-      if (terminada) {
-        /* Se cortó el examen a mitad. Sin esto, el acta guardaba solo las
-           respuestas alcanzadas y podía salir "3 de 3, aprobado" sobre un
-           examen que nunca se terminó. */
-        quien.examen = {
-          nota: 0, minimo: window.Examen.notaMinima(), bien: 0,
-          total: armado.preguntas.length, aprobado: false,
-          intento: intentoExamen, incompleto: true
-        };
-        return;
-      }
+      // Si se cortó, la marca examenAbandonado ya viajó en la instantánea:
+      // aquí no hay nada que salvar y calificar a medias sería inventar.
+      if (terminada) return;
       var res = window.Examen.calificar(quien.respuestas.map(function (r, i) {
         return { veredicto: r.veredicto, tituloModulo: armado.preguntas[i] ? armado.preguntas[i].tituloModulo : '' };
       }));
       resultadoExamen = res;
       resultadoExamen.intento = intentoExamen;
+      res.intento = intentoExamen;
       quien.examen = res;
+      examenEnCurso = false; // ya hay nota: el examen dejó de estar abierto
       return window.Vera.decir(window.Examen.fraseResultado(quien.nombre, res, intentoExamen))
         .then(function () {
           if (terminada || res.aprobado || intentoExamen >= window.Examen.maxIntentos) return;
@@ -1183,11 +1192,14 @@
       }).join(' ');
       var ac = window.Historial.aciertos(p);
       var respuestas = p.examen && p.examen.total
-        ? (p.examen.incompleto
-            ? '<b>examen sin terminar</b>'
-            : '<b>' + p.examen.bien + '/' + p.examen.total + '</b> (' + p.examen.nota + '%) ' +
-              (p.examen.aprobado ? '✔ aprobó' : '✘ no aprobó') +
-              (p.examen.intento > 1 ? ' · intento ' + p.examen.intento : ''))
+        ? '<b>' + p.examen.bien + '/' + p.examen.total + '</b> (' + p.examen.nota + '%) ' +
+          (p.examen.aprobado ? '✔ aprobó' : '✘ no aprobó') +
+          (p.examen.intento > 1 ? ' · intento ' + p.examen.intento : '')
+        : p.examenAbandonado
+          ? '<b>examen interrumpido — sin nota</b>' +
+            (p.examenPreguntasTotal
+              ? ' (respondió ' + (p.respuestas || []).length + ' de ' + p.examenPreguntasTotal + ')'
+              : '')
         : ((p.respuestas || []).length
             ? marcas + (ac.total > 1 ? ' <b>(' + ac.bien + '/' + ac.total + ')</b>' : '')
             : 'no le tocó pregunta');
@@ -1300,7 +1312,10 @@
         : '';
       lineas.push('• ' + (p.nombre || 'Sin registrar') + ': atención ' + atencion +
         ', llamados ' + (p.llamados || 0) +
-        (ac.total ? ', preguntas ' + ac.bien + '/' + ac.total : '') + charla +
+        (p.examen && p.examen.total
+          ? ', examen ' + p.examen.nota + '% ' + (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO')
+          : p.examenAbandonado ? ', examen interrumpido (sin nota)'
+          : (ac.total ? ', preguntas ' + ac.bien + '/' + ac.total : '')) + charla +
         (p.paraSupervisor ? ' — REVISAR CON SUPERVISOR' : ''));
     });
     lineas.push('', acta.modo === 'camara'
@@ -1337,6 +1352,10 @@
           cerroAtenta: !!(p.presente && p.ema > 0.7),
           descargo: p.descargo || '',
           examen: p.examen || null,
+          // Examen empezado y nunca calificado: los aciertos parciales NO son
+          // una nota, y sin esta marca lo parecerían en los cuatro caminos.
+          examenAbandonado: !!(examenEnCurso && p === examinado),
+          examenPreguntasTotal: (examenEnCurso && p === examinado) ? examenPreguntasTotal : 0,
           paraSupervisor: p.paraSupervisor,
           respuestas: p.respuestas
         };
@@ -1399,10 +1418,12 @@
     ];
     // La nota del examen manda sobre el conteo suelto de preguntas.
     if (p.examen && p.examen.total) {
-      datos.push({ valor: p.examen.incompleto ? '—' : p.examen.nota + '%',
-                   rotulo: p.examen.incompleto ? 'Examen' : 'Nota (' + p.examen.bien + ' de ' + p.examen.total + ')' });
-      datos.push({ valor: p.examen.incompleto ? 'SIN TERMINAR'
-                        : (p.examen.aprobado ? 'APROBADO' : 'NO APROBADO'), rotulo: 'Resultado' });
+      datos.push({ valor: p.examen.nota + '%',
+                   rotulo: 'Nota (' + p.examen.bien + ' de ' + p.examen.total + ')' });
+      datos.push({ valor: p.examen.aprobado ? 'APROBADO' : 'NO APROBADO', rotulo: 'Resultado' });
+    } else if (p.examenAbandonado) {
+      // Ni nota ni aciertos: el examen no llegó a terminarse.
+      datos.push({ valor: 'SIN NOTA', rotulo: 'El examen se interrumpió' });
     } else {
       // "Acertadas" solo sobre las preguntas que de verdad se pudieron calificar.
       if (ac.total) datos.push({ valor: ac.bien + ' de ' + ac.total, rotulo: 'Preguntas acertadas' });
@@ -1421,12 +1442,13 @@
         ? '<div class="c-sello-demo c-sello-aviso">SESIÓN INTERRUMPIDA · ACTA RESCATADA</div>' : '') +
       // Quien no aprobó NO recibe un papel que parezca diploma: recibe una
       // constancia de asistencia, que es lo único cierto.
-      (p.examen && p.examen.total && !p.examen.aprobado
-        ? '<div class="c-sello-demo c-sello-aviso">' +
-          (p.examen.incompleto ? 'EXAMEN SIN TERMINAR — CONSTANCIA DE ASISTENCIA'
-                               : 'NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA') + '</div>' : '') +
+      (p.examenAbandonado
+        ? '<div class="c-sello-demo c-sello-aviso">EXAMEN INTERRUMPIDO — CONSTANCIA DE ASISTENCIA</div>'
+        : (p.examen && p.examen.total && !p.examen.aprobado
+          ? '<div class="c-sello-demo c-sello-aviso">NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA</div>'
+          : '')) +
       '<div class="c-marca">VERA · CAPACITADORA VIRTUAL</div>' +
-      '<h1>' + (p.examen && p.examen.total && !p.examen.aprobado
+      '<h1>' + ((p.examenAbandonado || (p.examen && p.examen.total && !p.examen.aprobado))
         ? 'Constancia de asistencia' : 'Constancia de capacitación') + '</h1>' +
       '<div class="c-linea"></div>' +
       '<div class="c-texto">Se deja constancia de que</div>' +
