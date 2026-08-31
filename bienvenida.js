@@ -129,7 +129,7 @@
     if (/cobran|cartera|mora/.test(texto)) {
       return 'Tú que ya estuviste en cobranza, compara con lo que hacías antes: ';
     }
-    if (/venta|vendi|comercial|call|telemercadeo|servicio al cliente|atenci/.test(texto)) {
+    if (/venta|vendi|comercial|call center|telemercadeo|atenci|atend|client|caja|mesero|recepci/.test(texto)) {
       return 'Esto tú ya lo has vivido, por lo que me contaste de tu trabajo anterior: ';
     }
     return '';

@@ -44,6 +44,7 @@
   var declinoReintento = false;
   var fichaAsesor = {};         // lo que el asesor contó en la entrevista
   var resolverBienvenida = null;
+  var guiñoUsado = false;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
   var dudas = [];               // puntos que el grupo pidió repetir ("No entendí")
@@ -639,6 +640,17 @@
         if (terminada) return;
         dictado_.modulos = i + 1;
         pintarModulo(m, i);
+        /* Vera se acuerda de lo que el asesor le contó en la entrevista. Se
+           usa UNA sola vez en toda la sesión, en el segundo módulo: repetirlo
+           en cada uno sonaría a truco, y decirlo en el primero sería demasiado
+           pronto. Solo si de verdad contó algo que encaje. */
+        if (autoestudio && i === 1 && !guiñoUsado && window.Bienvenida) {
+          var frase = window.Bienvenida.guiño(fichaAsesor);
+          if (frase) {
+            guiñoUsado = true;
+            return window.Vera.decir(frase + 'sigamos con ' + m.titulo + '.');
+          }
+        }
         // Borrón al arrancar cada módulo: responder la pregunta anterior por
         // voz también mueve la boca y baja la media — ese arrastre no puede
         // producir un llamado inmerecido en los primeros segundos del módulo.
@@ -2503,6 +2515,36 @@
         window.Historial.borrarPersona(quien);
         pintarHistorial();
       }
+    });
+
+    /* Qué se le pregunta al asesor. Se deja configurable porque cada empresa
+       tiene su criterio sobre qué puede preguntar, y porque el estado civil
+       viene apagado a propósito: encenderlo debe ser una decisión consciente
+       de quien responde por eso, no un descuido. */
+    function pintarBienvenidaConfig() {
+      if (!window.Bienvenida) return;
+      var config = window.Bienvenida.leerConfig();
+      $('lista-bienvenida').innerHTML =
+        '<label class="chk-inline" style="margin-bottom:8px">' +
+          '<input type="checkbox" data-bv="desactivado"' + (config.desactivado ? ' checked' : '') + '>' +
+          '<span><b>No hacer la entrevista</b> — el curso arranca directo</span></label>' +
+        window.Bienvenida.todas().map(function (q) {
+          var encendida = config[q.clave] === undefined ? q.activa : !!config[q.clave];
+          var aviso = q.clave === 'estado-civil'
+            ? ' <span style="color:var(--ambar)">— apagada a propósito: en una decisión laboral este dato se lee como discriminación</span>'
+            : '';
+          return '<label class="chk-inline" style="margin-bottom:6px">' +
+            '<input type="checkbox" data-bv="' + q.clave + '"' + (encendida ? ' checked' : '') + '>' +
+            '<span>' + escaparHtml(q.rotulo) + aviso + '</span></label>';
+        }).join('');
+    }
+    pintarBienvenidaConfig();
+    $('lista-bienvenida').addEventListener('change', function (ev) {
+      var clave = ev.target && ev.target.dataset && ev.target.dataset.bv;
+      if (!clave) return;
+      var config = window.Bienvenida.leerConfig();
+      config[clave] = ev.target.checked;
+      window.Bienvenida.guardarConfig(config);
     });
 
     $('txt-nomina').value = window.Historial.nominaTexto();
