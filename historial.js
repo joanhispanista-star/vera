@@ -68,6 +68,10 @@
       // formato son un hecho del día de trabajo, no una falta que se le anota.
       formato: acta.formato === 'individual' ? 'individual' : 'grupo',
       interrupciones: Number(acta.interrupciones) || 0,
+      // Lo que el asesor contó de sí mismo en la entrevista de bienvenida:
+      // es la ficha que el supervisor va a leer, y tiene que sobrevivir a que
+      // el acta se reabra o se restaure de un respaldo.
+      fichaAsesor: (acta.fichaAsesor && typeof acta.fichaAsesor === 'object') ? acta.fichaAsesor : null,
       // Dónde iba la capacitación, para poder retomarla en vez de repetirla.
       progreso: (acta.progreso && typeof acta.progreso === 'object') ? {
         curso: Number(acta.progreso.curso) || 0,

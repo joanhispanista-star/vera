@@ -166,6 +166,15 @@
           </div>
         </div>
 
+        <div id="zona-bienvenida" class="zona-entrada oculto">
+          <div id="bienvenida-pregunta" class="respuesta-para"></div>
+          <div class="fila-entrada">
+            <input type="text" id="txt-bienvenida" placeholder="Escribe tu respuesta" autocomplete="off">
+            <button id="btn-bienvenida-ok" class="btn btn-primario">Responder</button>
+            <button id="btn-bienvenida-saltar" class="btn btn-mini">Prefiero no decir</button>
+          </div>
+        </div>
+
         <div id="zona-opciones" class="zona-entrada oculto">
           <div id="opciones-pregunta" class="respuesta-para"></div>
           <div id="opciones-lista" class="opciones-lista"></div>
@@ -229,6 +238,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <div id="acta-ficha" class="acta-dudas acta-ficha oculto"></div>
       <div id="acta-dudas" class="acta-dudas oculto"></div>
       <p id="acta-nota" class="letra-menuda">
         La atención se estima por postura de cabeza y apertura de ojos frente a la cámara.
@@ -341,6 +351,7 @@
 <script src="contenido.js"></script>
 <script src="historial.js"></script>
 <script src="examen.js"></script>
+<script src="bienvenida.js"></script>
 <script src="vera.js"></script>
 <script src="simulacion.js"></script>
 <script src="motor-atencion.js"></script>

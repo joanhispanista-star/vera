@@ -42,6 +42,8 @@
   var examenPreguntasTotal = 0; // cuántas traía el examen que se interrumpió
   var resolverOpcion = null;
   var declinoReintento = false;
+  var fichaAsesor = {};         // lo que el asesor contó en la entrevista
+  var resolverBienvenida = null;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
   var dudas = [];               // puntos que el grupo pidió repetir ("No entendí")
@@ -349,12 +351,21 @@
       }
       window.Motor.bloquearNuevas = true;
       var retoma = arranqueSesion > 0 && arranqueSesion < contenido.modulos.length;
-      window.Vera.decir(retoma
-        ? 'Retomamos donde quedamos, ' + (miNombre || '') + '. Vamos por el módulo ' +
-          (arranqueSesion + 1) + ': ' + contenido.modulos[arranqueSesion].titulo + '.'
-        : 'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
-          'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
-      ).then(function () { dictado(retoma ? arranqueSesion : 0); });
+      // La entrevista solo la primera vez: a quien retoma ya lo conocemos, y
+      // volvérsela a hacer sería el trámite que esto viene a evitar.
+      var entrevista = retoma ? Promise.resolve() : rondaBienvenida();
+      entrevista.then(function () {
+        if (terminada) return;
+        return window.Vera.decir(retoma
+          ? 'Retomamos donde quedamos, ' + (miNombre || '') + '. Vamos por el módulo ' +
+            (arranqueSesion + 1) + ': ' + contenido.modulos[arranqueSesion].titulo + '.'
+          : 'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
+            'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
+        );
+      }).then(function () {
+        if (terminada) return;
+        dictado(retoma ? arranqueSesion : 0);
+      });
       return;
     }
     $('btn-empezar-registro').classList.add('oculto');
@@ -717,6 +728,100 @@
     });
 
     return cadena;
+  }
+
+  /* La entrevista de bienvenida. Vera conoce al asesor antes de enseñarle:
+     baja la tensión de estar solo frente a una IA que además va a examinarlo,
+     y le deja al supervisor una ficha de quién entró. Ver bienvenida.js para
+     el porqué de cada decisión, incluido lo que NO se pregunta. */
+  function rondaBienvenida() {
+    if (!window.Bienvenida) return Promise.resolve();
+    var lista = window.Bienvenida.preguntas();
+    if (!lista.length) return Promise.resolve();
+
+    fase = 'bienvenida';
+    $('barra-fase').textContent = 'Nos conocemos';
+    $('diapositiva-titulo').textContent = 'Antes de empezar';
+    $('diapositiva-puntos').innerHTML = '<li class="actual">Vera quiere conocerte</li>';
+
+    var cadena = window.Vera.decir(window.Bienvenida.textoConsentimiento(miNombre));
+
+    lista.forEach(function (q) {
+      cadena = cadena.then(esperarSiPausada).then(function () {
+        if (terminada) return;
+        return window.Vera.decir(q.texto).then(function () {
+          if (terminada) return null;
+          if (modo === 'simulacion') {
+            // En la demostración se responde solo, para que la escena se vea
+            // completa sin que nadie tenga que escribir.
+            var demo = {
+              'de-donde': 'Vivo por Kennedy, cerca del portal.',
+              'antes': 'Estaba trabajando en un almacén de ropa, atendiendo caja.',
+              'experiencia': 'Sí, atendía clientes todo el día y a veces llamaba para confirmar pedidos.',
+              'telefono': 'Al principio me daba nervios, pero ya me suelto.',
+              'espera': 'Quiero aprender bien y que me vaya bien con las comisiones.',
+              'estado-civil': 'Soltero.'
+            }[q.clave] || 'Bien, gracias.';
+            $('barra-fase').textContent = (miNombre || 'El asesor') + ': “' + demo + '”';
+            return pausa(window.Vera.modoRapido ? 350 : 1400).then(function () { return demo; });
+          }
+          return pedirBienvenida(q);
+        }).then(function (texto) {
+          if (terminada) return;
+          if (texto && String(texto).trim()) {
+            fichaAsesor[q.clave] = String(texto).trim();
+            return window.Vera.decir(reaccionBienvenida(q.clave, texto));
+          }
+          return window.Vera.decir('Listo, sin problema. Sigamos.');
+        });
+      });
+    });
+
+    return cadena.then(function () {
+      fase = 'registro';
+      $('zona-bienvenida').classList.add('oculto');
+      if (terminada) return;
+      return window.Vera.decir('Gracias por contarme, ' + (miNombre || '') + '. Ahora sí, a lo nuestro.');
+    });
+  }
+
+  /* Vera reacciona a lo que le contaron. No es adorno: es la diferencia entre
+     un formulario hablado y una conversación, y es lo que hace que el asesor
+     se suelte para el resto de la sesión. */
+  function reaccionBienvenida(clave, texto) {
+    var t = String(texto).toLowerCase();
+    if (clave === 'de-donde') return 'Ah, buena zona. Gracias.';
+    if (clave === 'antes') return 'Interesante. Eso siempre sirve más de lo que uno cree.';
+    if (clave === 'experiencia') {
+      return /no|nunca|ning/.test(t.slice(0, 12))
+        ? 'Tranquilo, mucha gente empieza aquí sin eso y le va muy bien. Para eso estamos hoy.'
+        : 'Perfecto, entonces ya tienes camino adelantado: esto se parece bastante.';
+    }
+    if (clave === 'telefono') {
+      return /nervi|pena|difícil|dificil|miedo|no me gusta/.test(t)
+        ? 'Es lo más normal del mundo, y se pasa con las primeras llamadas. Hoy te doy con qué.'
+        : 'Eso ayuda muchísimo en este trabajo.';
+    }
+    if (clave === 'espera') return 'Me gusta. Vamos a trabajar para eso.';
+    return 'Gracias por contarme.';
+  }
+
+  function pedirBienvenida(q) {
+    return new Promise(function (resolver) {
+      var resuelto = false;
+      var entregar = function (texto) {
+        if (resuelto) return;
+        resuelto = true;
+        $('zona-bienvenida').classList.add('oculto');
+        resolverBienvenida = null;
+        resolver(texto);
+      };
+      resolverBienvenida = entregar;
+      $('bienvenida-pregunta').textContent = q.texto;
+      $('txt-bienvenida').value = '';
+      $('zona-bienvenida').classList.remove('oculto');
+      $('txt-bienvenida').focus();
+    });
   }
 
   /* El examen final del autoestudio. Todas las preguntas calificables del
@@ -1411,6 +1516,22 @@
         ' — no cuentan como falta';
     }
 
+    // La ficha del asesor: quién entró al equipo, en sus propias palabras.
+    var ficha = acta.fichaAsesor;
+    var lineasFicha = (ficha && window.Bienvenida) ? window.Bienvenida.resumen(ficha) : [];
+    if (lineasFicha.length) {
+      $('acta-ficha').innerHTML = '<h3>Quién es ' +
+        escaparHtml((acta.personas[0] && acta.personas[0].nombre) || 'el asesor') + '</h3><ul>' +
+        lineasFicha.map(function (l) {
+          return '<li><b>' + escaparHtml(l.rotulo) + ':</b> ' + escaparHtml(l.respuesta) + '</li>';
+        }).join('') + '</ul>' +
+        '<div class="pie-dudas">Lo contó él mismo al empezar, sabiendo que usted lo iba a leer. ' +
+        'Lo que prefirió no responder simplemente no aparece.</div>';
+      $('acta-ficha').classList.remove('oculto');
+    } else {
+      $('acta-ficha').classList.add('oculto');
+    }
+
     // Las dudas del grupo: el dato que ningún capacitador humano entrega.
     var lasDudas = acta.dudas || [];
     if (lasDudas.length) {
@@ -1493,6 +1614,8 @@
       interrupciones: interrupciones,
       msEnEspera: msEnEspera,
       formato: autoestudio ? 'individual' : 'grupo',
+      // Lo que el asesor contó de sí mismo: de ahí sale el resumen del acta.
+      fichaAsesor: Object.keys(fichaAsesor).length ? fichaAsesor : null,
       cobertura: { modulosDictados: dictado_.modulos, modulosTotal: contenido.modulos.length },
       personas: personas.map(function (p) {
         return {
@@ -2110,6 +2233,23 @@
     /* "No sé": sin esta salida, quien no sabe una pregunta se queda mirando la
        pantalla sin poder avanzar. Cuenta como incorrecta —no se regala nada—
        pero deja seguir, que es lo que haría cualquier examen de papel. */
+    var entregarBienvenida = function (texto) {
+      if (resolverBienvenida) {
+        var r = resolverBienvenida;
+        resolverBienvenida = null;
+        r(texto);
+      }
+    };
+    $('btn-bienvenida-ok').addEventListener('click', function () {
+      var t = $('txt-bienvenida').value.trim();
+      if (!t) return; // el vacío no cuenta: para eso está "Prefiero no decir"
+      entregarBienvenida(t);
+    });
+    $('txt-bienvenida').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') $('btn-bienvenida-ok').click();
+    });
+    $('btn-bienvenida-saltar').addEventListener('click', function () { entregarBienvenida(null); });
+
     $('btn-no-se').addEventListener('click', function () {
       if (!resolverOpcion) return;
       $('opciones-lista').querySelectorAll('button').forEach(function (b) { b.disabled = true; });
@@ -2148,6 +2288,8 @@
       if (resolverNombre) { var rn = resolverNombre; resolverNombre = null; rn(''); }
       if (resolverRespuesta) { var rr = resolverRespuesta; resolverRespuesta = null; rr(null); }
       if (resolverOpcion) { var ro = resolverOpcion; resolverOpcion = null; ro(-1); }
+      if (resolverBienvenida) { var rb = resolverBienvenida; resolverBienvenida = null; rb(null); }
+      $('zona-bienvenida').classList.add('oculto');
       $('zona-opciones').classList.add('oculto');
       mostrarActa();
     });

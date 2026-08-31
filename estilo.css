@@ -586,6 +586,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   font-size: 14px;
   line-height: 1.55;
 }
+.acta-ficha { border-left-color: var(--acento); }
+.acta-ficha h3 { color: var(--acento) !important; }
 .acta-dudas h3 { font-size: 15px; margin-bottom: 8px; color: var(--ambar); }
 .acta-dudas ul { list-style: none; }
 .acta-dudas li { padding: 5px 0 5px 18px; position: relative; color: var(--texto-suave); }
