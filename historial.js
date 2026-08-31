@@ -137,6 +137,18 @@
   /* Nombres que la app pone sola cuando no supo quién era alguien. No son
      identidades: fundir los "Asistente 1" de cinco sesiones distintas en una
      sola ficha crearía una persona que no existe, con constancia y todo. */
+  /* Clave de identidad de una persona. Sin quitar tildes ni espacios dobles,
+     "José Pérez" y "Jose Perez" son dos asesores distintos en el historial —
+     y la evidencia de uno solo queda partida en dos fichas. */
+  function clavePersona(nombre) {
+    return String(nombre || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function esNombreGenerico(nombre) {
     return /^(asistente|invitado)\s*\d*$/i.test(String(nombre || '').trim()) ||
       /^sin registrar$/i.test(String(nombre || '').trim());
@@ -182,10 +194,16 @@
     listar().forEach(function (sesion) {
       if (!incluirDemos && sesion.modo !== 'camara') return;
       sesion.personas.forEach(function (p) {
-        var clave = p.nombre.toLowerCase().trim();
+        var clave = clavePersona(p.nombre);
         if (!clave || esNombreGenerico(p.nombre)) return;
         if (!mapa[clave]) {
-          mapa[clave] = { nombre: p.nombre, sesiones: [], atencionSuma: 0, atencionN: 0, llamados: 0 };
+          mapa[clave] = { nombre: p.nombre.replace(/\s+/g, ' ').trim(),
+                          sesiones: [], atencionSuma: 0, atencionN: 0, llamados: 0 };
+        }
+        // Entre dos formas del mismo nombre gana la que trae tildes: es la que
+        // el coordinador escribió en la lista del equipo.
+        if (/[áéíóúñÁÉÍÓÚÑ]/.test(p.nombre) && !/[áéíóúñÁÉÍÓÚÑ]/.test(mapa[clave].nombre)) {
+          mapa[clave].nombre = p.nombre.replace(/\s+/g, ' ').trim();
         }
         var reg = mapa[clave];
         reg.sesiones.push({ id: sesion.id, titulo: sesion.titulo, fecha: sesion.fecha, persona: p });
@@ -237,7 +255,7 @@
       if (isNaN(cuando)) return;
       s.personas.forEach(function (p) {
         if (esNombreGenerico(p.nombre)) return;
-        var clave = p.nombre.toLowerCase().trim() + '|' + s.titulo;
+        var clave = clavePersona(p.nombre) + '|' + s.titulo;
         // listar() ya viene de la más reciente a la más vieja, pero no se
         // asume: se compara siempre y se conserva la última de verdad.
         if (!ultimas[clave] || cuando > ultimas[clave].cuando) {
@@ -367,11 +385,15 @@
     var interrupciones = 0, individuales = 0;
 
     sesiones.forEach(function (s) {
+      // duracionMin ya viene con la espera y la pausa descontadas: es tiempo
+      // en que de verdad hubo capacitación.
       minutos += s.duracionMin || 0;
       interrupciones += s.interrupciones || 0;
       if (s.formato === 'individual') individuales += 1;
       s.personas.forEach(function (p) {
-        if (!esNombreGenerico(p.nombre)) gente[p.nombre.toLowerCase().trim()] = true;
+        // Misma clave que el historial: si no, el tablero cuenta como dos
+        // personas a quien aparece con tilde en una sesion y sin ella en otra.
+        if (!esNombreGenerico(p.nombre)) gente[clavePersona(p.nombre)] = true;
         if (p.examen && p.examen.total) {
           conExamen += 1;
           if (p.examen.aprobado) {
@@ -522,14 +544,13 @@
   }
 
   function borrarPersona(nombre) {
-    var clave = String(nombre).toLowerCase().trim();
+    var clave = clavePersona(nombre);
     var quitar = function (lista) {
       // Datos crudos, no normalizados: aquí también puede llegar basura de un
       // respaldo, y el botón "Borrar sus datos" no puede fallar en silencio.
       if (!Array.isArray(lista)) return [];
       return lista.filter(function (p) {
-        return !p || typeof p !== 'object' ||
-          String(p.nombre || '').toLowerCase().trim() !== clave;
+        return !p || typeof p !== 'object' || clavePersona(p.nombre) !== clave;
       });
     };
     var actas = leerCrudo().filter(function (a) {

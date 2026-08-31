@@ -33,7 +33,8 @@
   var interrupciones = 0;
   var msEnEspera = 0;
   var resolverEspera = null;
-  var moduloDeArranque = 0;     // al retomar un curso a medias
+  var moduloDeArranque = 0;     // al retomar un curso a medias (se consume al iniciar)
+  var arranqueSesion = 0;       // el módulo por el que arrancó ESTA sesión
   var resultadoExamen = null;
   var examenEnCurso = false;    // examen empezado y todavía SIN calificar
   var examinado = null;         // a quién se le está tomando
@@ -210,6 +211,10 @@
     // 'solo' = individual con cámara. 'solo-demo' = individual simulado, para
     // ver el flujo del asesor sin cámara y sin tener a quién capacitar.
     autoestudio = (elegido === 'solo' || elegido === 'solo-demo');
+    // Se consume una sola vez: sin esto, la sesión SIGUIENTE arrancaba saltándose
+    // módulos que nadie dictó, y el acta los contaba como vistos.
+    arranqueSesion = moduloDeArranque;
+    moduloDeArranque = 0;
     modo = elegido === 'solo' ? 'camara' : (elegido === 'solo-demo' ? 'simulacion' : elegido);
     miNombre = autoestudio ? (nombreElegido() || 'Asistente') : '';
     grupoSesion = $('txt-grupo').value.trim();
@@ -334,13 +339,13 @@
         window.Motor.calibrar(yo);
       }
       window.Motor.bloquearNuevas = true;
-      var retoma = moduloDeArranque > 0 && moduloDeArranque < contenido.modulos.length;
+      var retoma = arranqueSesion > 0 && arranqueSesion < contenido.modulos.length;
       window.Vera.decir(retoma
         ? 'Retomamos donde quedamos, ' + (miNombre || '') + '. Vamos por el módulo ' +
-          (moduloDeArranque + 1) + ': ' + contenido.modulos[moduloDeArranque].titulo + '.'
+          (arranqueSesion + 1) + ': ' + contenido.modulos[arranqueSesion].titulo + '.'
         : 'Perfecto, ' + (miNombre || 'empecemos') + '. Si en algún momento no entiendes algo, ' +
           'oprime el botón de “No entendí” y lo repito las veces que haga falta. Arrancamos.'
-      ).then(function () { dictado(retoma ? moduloDeArranque : 0); });
+      ).then(function () { dictado(retoma ? arranqueSesion : 0); });
       return;
     }
     $('btn-empezar-registro').classList.add('oculto');
@@ -442,6 +447,9 @@
     window.Vera.callar();
     window.Vera.detenerEscucha();
     window.Motor.esperar();
+    // Lo que estuviera encolado es de los segundos en que se estaba parando:
+    // decirlo al volver sería el llamado que la espera existe para evitar.
+    colaAlertas.length = 0;
     $('barra-fase').textContent = 'Te espero. La cámara sigue encendida solo para saber cuándo vuelves — ' +
       'no se está midiendo nada, y esto no cuenta en tu contra.';
   }
@@ -457,10 +465,26 @@
       p.bocaHistoria = [];
       p.hablandoDesdeMs = 0;
     });
+    // La vigilancia solo se reenciende si estábamos dictando: durante el examen
+    // o los descargos no hay nada que vigilar y el acta se ensuciaría.
     if (fase === 'modulo') window.Motor.alertasActivas = true;
-    repetirPedido = true; // al volver se repite el punto entero
-    window.Vera.decir('Volviste, ' + (miNombre || 'sigamos') + '. Te repito el punto.');
-    if (resolverEspera) { var r = resolverEspera; resolverEspera = null; r(); }
+    // La cola de alertas de ANTES de irse ya no aplica: al volver le caería un
+    // llamado por algo que pasó hace cinco minutos.
+    colaAlertas.length = 0;
+    /* Solo se promete repetir cuando de verdad se puede repetir: repetirPedido
+       lo consume decirPunto(), que solo corre durante el dictado. Si la espera
+       cayó en una pregunta o en el examen, prometer "te repito el punto" haría
+       que se repitiera el punto SIGUIENTE — o ninguno. */
+    // decirPunto() ya repite solo el punto interrumpido; aquí solo se anuncia
+    // lo que va a pasar, y solo cuando de verdad va a pasar.
+    var puedeRepetir = (fase === 'modulo');
+    var saludo = 'Volviste, ' + (miNombre || 'sigamos') + '.' +
+      (puedeRepetir ? ' Te repito el punto.' : ' Seguimos donde íbamos.');
+    // Encadenado: soltar el decir() y resolver en el mismo tick encimaba dos voces.
+    window.Vera.decir(saludo).then(function () {
+      if (resolverEspera) { var r = resolverEspera; resolverEspera = null; r(); }
+    });
+    return;
   }
 
   function alternarPausa() {
@@ -541,7 +565,10 @@
     return window.Vera.decir(texto, { entreFrases: procesarAlertas })
       .then(procesarAlertas)
       .then(function () {
-        if (pausada && !terminada) {
+        /* Si el descanso o la interrupción cayeron DENTRO de este punto, se
+           espera aquí mismo y se repite ESTE. Antes la espera se atendía en el
+           punto siguiente: Vera decía "te repito el punto" y repetía el otro. */
+        if ((pausada || enEspera) && !terminada) {
           return esperarSiPausada().then(function () { return decirPunto(texto); });
         }
         // Alguien pidió que se repitiera: se repite entero, como haría
@@ -611,10 +638,12 @@
       return rondaDescargos();
     }).then(function () {
       if (terminada) return;
-      return window.Vera.decir(
-        'Y con esto terminamos la inducción de hoy. Gracias a todos. ' +
-        'El acta queda lista para el supervisor: quién estuvo, cómo estuvo su atención ' +
-        'y cómo les fue en las preguntas. Que tengan buen turno.'
+      return window.Vera.decir(autoestudio
+        ? 'Y con esto terminamos tu capacitación. Gracias, ' + (miNombre || '') + '. ' +
+          'Tu constancia queda lista y el acta con lo que hicimos hoy también. Buen turno.'
+        : 'Y con esto terminamos la inducción de hoy. Gracias a todos. ' +
+          'El acta queda lista para el supervisor: quién estuvo, cómo estuvo su atención ' +
+          'y cómo les fue en las preguntas. Que tengan buen turno.'
       );
     }).then(mostrarActa);
   }
@@ -689,6 +718,16 @@
     if (!quien) return Promise.resolve();
 
     if (!intentoExamen) intentoExamen = leerIntentos(quien.nombre);
+    /* El tope se verifica ANTES de tomar el examen. Antes solo se dejaba de
+       ofrecer el reintento, así que un cuarto intento igual se presentaba —
+       y podía salir APROBADO. */
+    if (intentoExamen >= window.Examen.maxIntentos) {
+      return window.Vera.decir(
+        quien.nombre + ', ya hiciste los ' + window.Examen.maxIntentos +
+        ' intentos de hoy. Esto queda en el acta para que lo revises con tu supervisor ' +
+        'y lo retomamos otro día. No es un castigo: es que todavía no estás listo para el teléfono.'
+      );
+    }
     var armado = window.Examen.armar(contenido);
     if (!armado.preguntas.length) {
       // Sin preguntas calificables no hay examen que valga: se dice, en vez de
@@ -847,10 +886,13 @@
     if (!señalados.length) return Promise.resolve();
 
     fase = 'descargos';
-    var cadena = window.Vera.decir(
-      'Una última cosa, y es de justicia. A algunos les llamé la atención durante la sesión. ' +
-      'Puede que tuvieran una buena razón y yo no la conozca: si quieren dejar una aclaración ' +
-      'escrita en el acta, este es el momento.'
+    var cadena = window.Vera.decir(señalados.length === 1
+      ? 'Una última cosa, y es de justicia. Durante la sesión te hice notar algo, y puede que ' +
+        'tuvieras una buena razón que yo no conozco. Si quieres dejar una aclaración escrita ' +
+        'en el acta, este es el momento.'
+      : 'Una última cosa, y es de justicia. A algunos les llamé la atención durante la sesión. ' +
+        'Puede que tuvieran una buena razón y yo no la conozca: si quieren dejar una aclaración ' +
+        'escrita en el acta, este es el momento.'
     );
 
     señalados.forEach(function (p, idx) {
@@ -858,9 +900,13 @@
         if (terminada) return;
         window.Vera.mirar(p.x);
         $('barra-fase').textContent = 'Descargos · ' + (idx + 1) + ' de ' + señalados.length;
-        return window.Vera.decir(
-          p.nombre + ', te llamé la atención ' + p.llamados +
-          (p.llamados === 1 ? ' vez' : ' veces') + '. ¿Quieres aclarar algo para el acta?'
+        // Puede llegar aquí por conversa o por marca de supervisor sin llamados:
+        // decirle "te llamé la atención 0 veces" sería absurdo.
+        return window.Vera.decir(p.llamados > 0
+          ? p.nombre + ', te llamé la atención ' + p.llamados +
+            (p.llamados === 1 ? ' vez' : ' veces') + '. ¿Quieres aclarar algo para el acta?'
+          : p.nombre + ', en el acta quedó una observación sobre tu sesión. ' +
+            '¿Quieres aclarar algo?'
         ).then(function () {
           if (terminada) return null;
           if (modo === 'simulacion') {
@@ -1192,9 +1238,13 @@
 
     if (!inicioSesion) inicioSesion = Date.now(); // sesión cortada antes del registro
     if (pausada) msPausados += Date.now() - pausaDesde; // se terminó estando en pausa
+    // Y si se terminó con el puesto vacío, esa espera todavía no estaba sumada:
+    // sin esto la duración —y las horas del tablero— cobran tiempo en que no
+    // hubo capacitación, justo lo contrario de lo que el acta declara.
+    if (enEspera) { msEnEspera += Date.now() - esperaDesde; enEspera = false; }
     $('btn-pausar').classList.add('oculto');
     $('btn-duda').classList.add('oculto');
-    var duracionMin = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados) / 60000));
+    var duracionMin = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados - msEnEspera) / 60000));
     // Una sesión cortada antes de que llegara alguien no es evidencia de nada
     // y solo ensuciaría el historial con filas vacías.
     if (!personas.length) {
@@ -1311,8 +1361,9 @@
     if (acta.formato === 'individual' && acta.interrupciones) {
       var minEspera = Math.round((acta.msEnEspera || 0) / 60000);
       $('acta-datos').textContent += ' · ' + acta.interrupciones +
-        (acta.interrupciones === 1 ? ' interrupción' : ' interrupciones') +
-        (minEspera >= 1 ? ' (~' + minEspera + ' min de espera, no medidos)' : '');
+        (acta.interrupciones === 1 ? ' interrupción del puesto' : ' interrupciones del puesto') +
+        (minEspera >= 1 ? ' (~' + minEspera + ' min de espera, no medidos ni cobrados)' : '') +
+        ' — no cuentan como falta';
     }
 
     // Las dudas del grupo: el dato que ningún capacitador humano entrega.
@@ -1325,8 +1376,12 @@
             (String(d.texto).length > 120 ? '…' : '') + '”' +
             (d.veces > 1 ? ' (' + d.veces + ' veces)' : '') + '</li>';
         }).join('') + '</ul>' +
-        '<div class="pie-dudas">Son dudas del grupo, sin nombres: nadie queda señalado por preguntar. ' +
-        'Si un punto se repite sesión tras sesión, el problema no es la gente — es cómo está escrito.</div>';
+        '<div class="pie-dudas">' + (acta.formato === 'individual'
+          ? 'Pedir que se repita un punto no es una falta: es lo que hace un alumno que está poniendo atención. ' +
+            'Si un punto se repite en varias sesiones, el problema no es la gente — es cómo está escrito.'
+          : 'Son dudas del grupo, sin nombres: nadie queda señalado por preguntar. ' +
+            'Si un punto se repite sesión tras sesión, el problema no es la gente — es cómo está escrito.') +
+        '</div>';
       $('acta-dudas').classList.remove('oculto');
     } else {
       $('acta-dudas').classList.add('oculto');
@@ -1425,7 +1480,9 @@
     // Si estamos EN pausa, el descanso corrido todavía no está en msPausados:
     // sin sumarlo, el acta rescatada cobraría el café como capacitación.
     var pausaCorrida = pausada ? (Date.now() - pausaDesde) : 0;
-    var minutos = Math.max(1, Math.round((Date.now() - inicioSesion - msPausados - pausaCorrida) / 60000));
+    var esperaCorrida = enEspera ? (Date.now() - esperaDesde) : 0;
+    var minutos = Math.max(1, Math.round(
+      (Date.now() - inicioSesion - msPausados - pausaCorrida - msEnEspera - esperaCorrida) / 60000));
     var borrador = instantanea(personas, minutos);
     borrador.rescatada = true; // si se recupera, el acta nace marcada
     // Dónde iba: un curso de 40 minutos se interrumpe de verdad (una reunión,
