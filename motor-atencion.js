@@ -166,6 +166,9 @@
        atención acumulada y respuestas. El emparejamiento por cercanía vuelve a
        adoptar a cada quien, igual que cuando alguien regresa del baño. */
     reanudar: function () {
+      /* Se sale del DESCANSO. Si además el puesto está vacío, la app volverá a
+         entrar en espera por su cuenta en el siguiente ciclo del ticker: aquí
+         no se decide eso, solo se levanta la pausa del descanso. */
       window.Motor.enPausa = false;
       if (modo !== 'camara') return Promise.resolve({ ok: true });
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -395,8 +398,19 @@
       // vuelto a sentarse en otro puesto: readoptarlo evita duplicar la fila.
       if (!ausente && window.Motor.bloquearNuevas) {
         var ausentes = personas.filter(function (q) { return !q.presente; });
-        // En individual el único ausente ES el asesor: volvió a sentarse.
-        if (ausentes.length === 1) ausente = ausentes[0];
+        /* Readopción del único ausente: normalmente es la persona que volvió a
+           sentarse en otro puesto. En individual hay que ser más exigente,
+           porque adoptar a quien pasa por detrás le entregaría el nombre, la
+           atención y la CONSTANCIA del asesor. Se le pide que esté cerca de
+           donde estaba y que se quede quieto ahí — no que cruce el cuadro. */
+        if (ausentes.length === 1) {
+          if (!window.Motor.unaSolaPersona) {
+            ausente = ausentes[0];
+          } else {
+            var d = Math.hypot(cara.cx - ausentes[0].x, cara.cy - ausentes[0].y);
+            if (d < 0.30) ausente = ausentes[0];
+          }
+        }
       }
       if (ausente) {
         ausente.presente = true;

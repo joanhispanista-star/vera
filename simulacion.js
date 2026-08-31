@@ -63,7 +63,12 @@
     'm2p0': { quien: 'sim-3', tipo: 'ausente', duracion: 16000 },
     // La conversa la protagoniza Paula: Jorge ya recibió llamado en m0p1 y el
     // enfriamiento de 45 s se tragaría esta alerta en las corridas rápidas.
-    'm2p1': { quien: 'sim-1', tipo: 'conversando', duracion: 14000 }
+    'm2p1': { quien: 'sim-1', tipo: 'conversando', duracion: 14000 },
+    /* Sala de UNA persona: el acto de ausencia de arriba es de sim-3, que ahí
+       no existe, así que la ESPERA —la función que más protege al asesor— no
+       se podía ver nunca en la demostración. Con esto Joan puede mostrarla:
+       Paula se levanta, Vera calla y espera, y al volver repite el punto. */
+    'm1p0-solo': { quien: 'sim-1', tipo: 'ausente', duracion: 12000 }
   };
 
   function aplicarComportamiento(p, tipo, duracion) {
@@ -299,6 +304,8 @@
 
     /* La app avisa por dónde va el dictado; si el guion tiene un acto aquí, arranca. */
     marcador: function (id) {
+      // En la sala de una persona se usa el guion propio si existe.
+      if (personas.length === 1 && GUION[id + '-solo']) id = id + '-solo';
       var acto = GUION[id];
       if (!acto) return;
       var p = personas.find(function (q) { return q.id === acto.quien; });

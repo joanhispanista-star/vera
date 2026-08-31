@@ -35,6 +35,7 @@
   var resolverEspera = null;
   var moduloDeArranque = 0;     // al retomar un curso a medias (se consume al iniciar)
   var arranqueSesion = 0;       // el módulo por el que arrancó ESTA sesión
+  var cursoDeLaSesion = 0;      // el curso que se está dictando ahora
   var resultadoExamen = null;
   var examenEnCurso = false;    // examen empezado y todavía SIN calificar
   var examinado = null;         // a quién se le está tomando
@@ -215,6 +216,7 @@
     // módulos que nadie dictó, y el acta los contaba como vistos.
     arranqueSesion = moduloDeArranque;
     moduloDeArranque = 0;
+    cursoDeLaSesion = window.ContenidoLib.indiceActivo();
     modo = elegido === 'solo' ? 'camara' : (elegido === 'solo-demo' ? 'simulacion' : elegido);
     miNombre = autoestudio ? (nombreElegido() || 'Asistente') : '';
     grupoSesion = $('txt-grupo').value.trim();
@@ -444,6 +446,12 @@
     enEspera = true;
     esperaDesde = Date.now();
     interrupciones += 1;
+    // Con el puesto vacío nadie puede contestar por el ausente: las respuestas
+    // se bloquean hasta que vuelva. Sin esto, el examen quedaba clickable.
+    $('opciones-lista').querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    $('btn-no-se').disabled = true;
+    $('btn-enviar-respuesta').disabled = true;
+    $('btn-responder-voz').disabled = true;
     window.Vera.callar();
     window.Vera.detenerEscucha();
     window.Motor.esperar();
@@ -459,6 +467,11 @@
     enEspera = false;
     msEnEspera += Date.now() - esperaDesde;
     window.Motor.dejarDeEsperar();
+    // Vuelve el asesor, vuelven sus botones.
+    $('opciones-lista').querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+    $('btn-no-se').disabled = false;
+    $('btn-enviar-respuesta').disabled = false;
+    $('btn-responder-voz').disabled = false;
     // Borrón: la distracción de la interrupción no es del asesor.
     window.Motor.presentes().forEach(function (p) {
       p.ema = Math.max(p.ema, 0.9);
@@ -516,6 +529,9 @@
       pausada = false;
       msPausados += Date.now() - pausaDesde;
       $('btn-pausar').textContent = '⏸ Pausar';
+      // Si vuelve del descanso con el puesto vacío, el ticker entrará en espera
+      // por su cuenta: se reinicia el contador para que no lo haga de inmediato.
+      vacioDesde = 0;
       // Borrón al volver: nadie carga con la distracción del descanso.
       window.Motor.presentes().forEach(function (p) {
         p.ema = Math.max(p.ema, 0.9);
@@ -562,6 +578,15 @@
      de la frase, al volver se repite el punto entero — es lo que haría un
      capacitador humano, y evita que alguien se pierda medio tema. */
   function decirPunto(texto) {
+    /* Ni a un acta cerrada ni a una silla vacía se les dicta. La comprobación
+       de abajo solo mira al SALIR del punto; sin esta de entrada quedaban dos
+       huecos: volver a levantarse mientras suena "Volviste…" hacía que Vera
+       dictara durante una espera declarada, y oprimir "Terminar" en ese mismo
+       instante la ponía a hablar encima del acta ya generada. */
+    if (terminada) return Promise.resolve();
+    if (pausada || enEspera) {
+      return esperarSiPausada().then(function () { return decirPunto(texto); });
+    }
     return window.Vera.decir(texto, { entreFrases: procesarAlertas })
       .then(procesarAlertas)
       .then(function () {
@@ -1489,7 +1514,9 @@
     // el turno que empieza), y volver a empezar de cero es la forma más rápida
     // de que el asesor no lo termine nunca.
     borrador.progreso = {
-      curso: window.ContenidoLib.indiceActivo(),
+      // El curso de ESTA sesión, no el que esté seleccionado ahora: el
+      // selector puede haber cambiado y retomar arrancaría otro curso.
+      curso: cursoDeLaSesion,
       tituloCurso: contenido.titulo,
       modulo: puntoEnCurso ? puntoEnCurso.modulo : 0,
       nombre: miNombre,

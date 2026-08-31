@@ -67,6 +67,8 @@
   <p class="sub">
     Este es el mismo contenido que Vera dictó en la capacitación, para leerlo
     con calma desde el celular. Toca una pregunta para ver la respuesta.
+    Las preguntas del examen no están aquí a propósito: si estuvieran con su
+    respuesta, el examen no mediría nada.
   </p>
 
   <div class="selector-repaso">
@@ -93,28 +95,20 @@
   function pintar() {
     var contenido = window.ContenidoLib.obtener();
     $('contenido-repaso').innerHTML = contenido.modulos.map(function (m, i) {
-      var preguntas = (m.preguntas || []).map(function (q, j) {
+      /* Las preguntas de OPCIÓN MÚLTIPLE son el examen. Publicarlas aquí con
+         su respuesta correcta, a un clic de la pantalla de inicio, convierte
+         el examen en un trámite: el asesor abre el repaso, ve las respuestas y
+         vuelve a contestar. El repaso enseña; el examen mide. */
+      var preguntas = (m.preguntas || []).filter(function (q) {
+        return q.tipo !== 'opciones';
+      }).map(function (q, j) {
         var id = 'r' + i + '-' + j;
         // Las de opción múltiple traen su correcta y el porqué; las abiertas,
         // la respuesta modelo. Sin esto el repaso decía "Sin respuesta modelo"
         // justo en las preguntas que sí tienen respuesta.
-        var respuesta;
-        if (q.tipo === 'opciones') {
-          var buena = (q.opciones || []).filter(function (o) { return o.correcta; })[0];
-          respuesta = buena
-            ? escapar(buena.texto) + (buena.porQue ? '<br><br>' + escapar(buena.porQue) : '')
-            : 'Esta pregunta todavía no tiene respuesta marcada.';
-        } else {
-          respuesta = escapar(q.respuestaModelo || 'Esta pregunta todavía no tiene respuesta escrita.');
-        }
-        var opciones = q.tipo === 'opciones'
-          ? '<ul style="list-style:none;margin:8px 0 0">' + (q.opciones || []).map(function (o) {
-              return '<li style="padding:4px 0 4px 16px;position:relative;color:var(--texto-suave)">' +
-                '<span style="position:absolute;left:0">·</span>' + escapar(o.texto) + '</li>';
-            }).join('') + '</ul>'
-          : '';
+        var respuesta = escapar(q.respuestaModelo || 'Esta pregunta todavía no tiene respuesta escrita.');
         return '<div class="tarjeta-pregunta">' +
-          '<div class="p">' + escapar(q.texto) + '</div>' + opciones +
+          '<div class="p">' + escapar(q.texto) + '</div>' +
           '<button class="btn btn-mini" data-ver="' + id + '">Ver la respuesta</button>' +
           '<div class="r oculto" id="' + id + '">' + respuesta + '</div>' +
           '</div>';
