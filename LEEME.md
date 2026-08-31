@@ -66,6 +66,16 @@ lo llamó el jefe o porque entró una llamada **es** el trabajo. Por eso:
 - **Retomar**: si la sesión se corta, al abrir aparece *"quedó a medias… en el
   módulo 4"* con botón para continuar. El acta parcial se archiva antes.
 
+### Ver el flujo del asesor sin cámara
+
+En **Modo demostración**, si escribes un nombre, la sala simulada corre con
+**una sola persona** y hace el recorrido completo del asesor: saludo por su
+nombre, dictado, una interrupción del puesto (para ver cómo Vera **espera** en
+vez de regañar), examen con botones, una respuesta fallada a propósito, y el
+camino del repaso dirigido y el reintento. Sirve para revisar exactamente lo
+que va a vivir el asesor antes de sentarlo, y para mostrarlo donde no hay a
+quién capacitar.
+
 ### La lista del equipo
 
 En el historial se puede pegar la lista del equipo (un nombre por línea). Con
