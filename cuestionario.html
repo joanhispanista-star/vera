@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cobranza de nanocréditos — el cuestionario</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .cuestionario { max-width: 800px; margin: 0 auto; padding: 20px 18px 80px; }
+  .bloque {
+    background: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .bloque h2 { color: var(--acento); font-size: 18px; margin-bottom: 6px; }
+  .bloque .para-que { color: var(--texto-suave); font-size: 13px; margin-bottom: 18px; line-height: 1.55; }
+  .campo { margin-bottom: 20px; padding-left: 12px; border-left: 3px solid var(--borde); }
+  .campo.hecha { border-left-color: var(--exito, #4caf50); }
+  .campo label { display: block; font-size: 15px; margin-bottom: 6px; line-height: 1.5; }
+  .campo .num { color: var(--texto-suave); font-weight: 600; margin-right: 2px; }
+  .campo .pista { display: block; font-size: 12.5px; color: var(--texto-suave); margin-bottom: 9px; line-height: 1.55; }
+  .campo textarea {
+    width: 100%;
+    min-height: 96px;
+    background: var(--fondo-suave);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 10px 12px;
+    resize: vertical;
+  }
+  .campo textarea:focus { outline: none; border-color: var(--acento); }
+  .etiqueta {
+    display: inline-block;
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    vertical-align: 2px;
+    white-space: nowrap;
+  }
+  .etiqueta.esencial { background: rgba(76,175,80,.16); color: #7ddb82; border: 1px solid rgba(76,175,80,.35); }
+  .etiqueta.critica { background: rgba(255,167,38,.13); color: #ffb74d; border: 1px solid rgba(255,167,38,.3); }
+  .bloque-vacio { opacity: .68; }
+  .ocultas { font-size: 12.5px; color: var(--texto-suave); font-style: italic; margin-top: -4px; }
+  .avance {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--fondo);
+    border-bottom: 1px solid var(--borde);
+    padding: 12px 0 10px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--texto-suave);
+  }
+  .avance .barra-avance { height: 6px; background: var(--fondo-suave); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .avance .barra-avance i { display: block; height: 100%; background: var(--acento); border-radius: 3px; transition: width .3s; }
+  .plazo {
+    background: var(--fondo-suave);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-size: 14px;
+  }
+  .plazo b { color: var(--acento); }
+  #salida {
+    width: 100%; min-height: 300px;
+    background: var(--fondo); border: 1px solid var(--acento); border-radius: 8px;
+    color: var(--texto); font-family: Consolas, monospace; font-size: 13px;
+    line-height: 1.5; padding: 12px; resize: vertical;
+  }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">VERA <span>cobranza de nanocréditos</span></div>
+  <div class="cabecera-nota">Lo que escribas se guarda solo, en este navegador.</div>
+</header>
+
+<main class="cuestionario">
+  <h1>Lo que necesito saber para armar el curso</h1>
+  <p class="intro">
+    Tú conoces el producto y los procesos. Yo no. Estas preguntas son las que
+    hay que responder para que un asesor nuevo se siente solo frente a un
+    computador y salga de ahí <strong>listo para cobrar</strong>, sin que nadie
+    le explique nada más.
+  </p>
+
+  <div class="plazo">
+    <b id="plazo">…</b><br>
+    Responde <b>las 12 esenciales</b> y ya tengo con qué armar seis módulos
+    dictables. Lo demás lo completamos después del viernes.
+  </div>
+
+  <p class="letra-menuda">
+    <strong>Contesta a lo bruto y en desorden.</strong> Pega los textos tal cual
+    salen del teléfono o del sistema, con emojis, mayúsculas y faltas: lo que
+    maquilles se convierte en un curso que el asesor no reconoce y no sigue. Y
+    cuando una respuesta sea incómoda —«nadie lo anota en ninguna parte», «al
+    tercer día se le marca a la esposa»— esa es justo la que más sirve: con ella
+    el curso enseña lo que de verdad se hace, en vez de recitar la ley.
+  </p>
+
+  <div class="botonera" style="justify-content:flex-start;margin:18px 0 6px">
+    <button id="btn-modo" class="btn btn-secundario">Ver las 29 preguntas</button>
+  </div>
+  <p class="letra-menuda" id="nota-modo" style="margin-bottom:18px"></p>
+
+  <div class="avance">
+    <span id="avance-texto">…</span>
+    <div class="barra-avance"><i id="avance-barra" style="width:0%"></i></div>
+  </div>
+
+  <div id="formulario"></div>
+
+  <section class="bloque">
+    <h2>Cuando termines</h2>
+    <p class="para-que">
+      Descarga el archivo y pásamelo por el chat. Con eso escribo el curso: los
+      módulos que Vera dicta, las preguntas del examen y las trampas que
+      distinguen al que entendió del que solo asintió. Lo que quede vacío no me
+      lo invento — sale marcado como un hueco.
+    </p>
+    <div class="botonera" style="justify-content:flex-start;margin-bottom:12px">
+      <button id="btn-descargar" class="btn btn-primario">Descargar mis respuestas</button>
+      <button id="btn-copiar" class="btn btn-secundario">Copiar todo</button>
+      <button id="btn-ver" class="btn btn-mini">Ver cómo va quedando</button>
+    </div>
+    <textarea id="salida" spellcheck="false" placeholder="Oprime “Ver cómo va quedando” para revisar lo respondido…"></textarea>
+  </section>
+</main>
+
+<script src="cuestionario-datos.js"></script>
+<script src="cuestionario.js"></script>
+</body>
+</html>
