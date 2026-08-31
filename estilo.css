@@ -519,9 +519,12 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   background: #b3352f;
   color: #fff;
   font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  /* Sin mayúsculas sostenidas: el mensaje más delicado del documento se lee
+     peor gritado, y en pantalla pequeña se vuelve un bloque. */
+  text-transform: none;
+  letter-spacing: 0.5px;
   text-align: center;
   padding: 8px 12px;
   border-radius: 6px;

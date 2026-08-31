@@ -41,6 +41,7 @@
   var examinado = null;         // a quién se le está tomando
   var examenPreguntasTotal = 0; // cuántas traía el examen que se interrumpió
   var resolverOpcion = null;
+  var declinoReintento = false;
   var sesionGuardada = null;    // el acta recién guardada, para sus constancias
   var actaEnPantalla = null;    // la que se está viendo: de la sesión, rescatada o del historial
   var dudas = [];               // puntos que el grupo pidió repetir ("No entendí")
@@ -161,10 +162,16 @@
       // El asesor ya escribió su nombre: no se le pregunta, se le llama por él
       // desde el primer segundo. Y se le dice de entrada que hay examen: nadie
       // debe enterarse al final de que su constancia dependía de una nota.
+      // Solo se promete examen si el curso de verdad tiene preguntas que se
+      // puedan calificar; si no, se anuncia lo que sí va a pasar.
+      var hayExamen = window.Examen && window.Examen.armar(contenido).preguntas.length > 0;
       return saludoPorHora() + ', ' + miNombre + comun +
         'y sí, te estoy viendo por la cámara mientras hacemos esto. ' +
-        'Vamos a hacer tu capacitación completa, y al final te voy a hacer un examen: ' +
-        'si lo pasas, queda tu constancia. Ponte cómodo, guarda el celular, y arrancamos.';
+        (hayExamen
+          ? 'Vamos a hacer tu capacitación completa, y al final te voy a hacer un examen: ' +
+            'si lo pasas, queda tu constancia. '
+          : 'Vamos a hacer tu capacitación completa y al final queda tu constancia de asistencia. ') +
+        'Ponte cómodo, guarda el celular, y arrancamos.';
     }
     if (window.Motor.presentes().length === 1) {
       return saludoPorHora() + comun + 'y sí, te estoy viendo por la cámara. ' +
@@ -664,8 +671,11 @@
     }).then(function () {
       if (terminada) return;
       return window.Vera.decir(autoestudio
-        ? 'Y con esto terminamos tu capacitación. Gracias, ' + (miNombre || '') + '. ' +
-          'Tu constancia queda lista y el acta con lo que hicimos hoy también. Buen turno.'
+        ? (declinoReintento
+            ? 'Cerramos por hoy, ' + (miNombre || '') + '. Queda tu constancia de asistencia y el ' +
+              'acta con el resultado del examen; cuando quieras lo retomamos. Buen turno.'
+            : 'Y con esto terminamos tu capacitación. Gracias, ' + (miNombre || '') + '. ' +
+              'Tu constancia queda lista y el acta con lo que hicimos hoy también. Buen turno.')
         : 'Y con esto terminamos la inducción de hoy. Gracias a todos. ' +
           'El acta queda lista para el supervisor: quién estuvo, cómo estuvo su atención ' +
           'y cómo les fue en las preguntas. Que tengan buen turno.'
@@ -716,7 +726,11 @@
   /* Intentos del examen, por persona y curso, con vigencia de un día: Vera
      dice "ya hiciste los intentos de hoy", así que mañana vuelven a empezar. */
   function claveIntentos(nombre) {
-    var hoy = new Date().toISOString().slice(0, 10);
+    // Fecha LOCAL, no UTC: con toISOString, en Colombia (UTC-5) el día cambiaba
+    // a las 7 de la noche y los intentos se reiniciaban a mitad del turno.
+    var d = new Date();
+    var dosDig = function (n) { return (n < 10 ? '0' : '') + n; };
+    var hoy = d.getFullYear() + '-' + dosDig(d.getMonth() + 1) + '-' + dosDig(d.getDate());
     return 'vera.intentos.' + hoy + '.' + window.ContenidoLib.claveActiva() + '.' +
       String(nombre || '').toLowerCase().trim();
   }
@@ -839,8 +853,9 @@
     window.Motor.alertasActivas = true;
     $('btn-duda').classList.remove('oculto');
     var cadena = window.Vera.decir(
-      'Repasamos ' + (aRepasar.length === 1 ? 'el módulo' : 'los módulos') +
-      ' donde se te complicó. Con calma, que para eso estamos.'
+      (aRepasar.length === 1
+        ? 'Repasamos el módulo donde se te complicó. Con calma, que para eso estamos.'
+        : 'Repasamos los módulos donde se te complicó. Con calma, que para eso estamos.')
     );
 
     aRepasar.forEach(function (x) {
@@ -883,8 +898,9 @@
           return rondaExamen();
         }));
       };
-      $('reintento-texto').textContent = 'Sacaste ' + res.nota + '% y el mínimo es ' + res.minimo +
-        '%. Intento ' + intentoExamen + ' de ' + window.Examen.maxIntentos + '.' +
+      $('reintento-texto').textContent = 'Acertaste ' + res.bien + ' de ' + res.total +
+        ' y necesitabas ' + res.minimoAciertos +
+        '. Intento ' + intentoExamen + ' de ' + window.Examen.maxIntentos + '.' +
         (res.modulosARepasar.length
           ? ' Vera te vuelve a explicar: ' + res.modulosARepasar.join(', ') + '.'
           : '');
@@ -893,7 +909,11 @@
         : 'Volver a intentar';
       $('zona-reintento').classList.remove('oculto');
       $('btn-reintentar').onclick = function () { cerrar(true); };
-      $('btn-no-reintentar').onclick = function () { cerrar(false); };
+      $('btn-no-reintentar').onclick = function () {
+        // Dejarlo para después es válido, pero el cierre no puede felicitarlo.
+        declinoReintento = true;
+        cerrar(false);
+      };
     });
   }
 
@@ -1576,15 +1596,15 @@
     $('constancia').innerHTML =
       // Una constancia de demostración tiene que gritarlo, no susurrarlo en el
       // pie: impresa y suelta, se confundiría con una real.
-      (esDemo ? '<div class="c-sello-demo">DEMOSTRACIÓN · SIN VALIDEZ</div>' : '') +
+      (esDemo ? '<div class="c-sello-demo">Demostración · sin validez</div>' : '') +
       (constanciaSesion.rescatada
-        ? '<div class="c-sello-demo c-sello-aviso">SESIÓN INTERRUMPIDA · ACTA RESCATADA</div>' : '') +
+        ? '<div class="c-sello-demo c-sello-aviso">Sesión interrumpida · acta rescatada</div>' : '') +
       // Quien no aprobó NO recibe un papel que parezca diploma: recibe una
       // constancia de asistencia, que es lo único cierto.
       (p.examenAbandonado
-        ? '<div class="c-sello-demo c-sello-aviso">EXAMEN INTERRUMPIDO — CONSTANCIA DE ASISTENCIA</div>'
+        ? '<div class="c-sello-demo c-sello-aviso">Examen interrumpido — constancia de asistencia</div>'
         : (p.examen && p.examen.total && !p.examen.aprobado
-          ? '<div class="c-sello-demo c-sello-aviso">NO APROBÓ EL EXAMEN — CONSTANCIA DE ASISTENCIA</div>'
+          ? '<div class="c-sello-demo c-sello-aviso">No aprobó el examen — constancia de asistencia</div>'
           : '')) +
       '<div class="c-marca">VERA · CAPACITADORA VIRTUAL</div>' +
       '<h1>' + ((p.examenAbandonado || (p.examen && p.examen.total && !p.examen.aprobado))
@@ -1679,7 +1699,20 @@
         $('aviso-rescate').classList.add('oculto');
         window.ContenidoLib.elegir(prog.curso);
         pintarResumen();
-        $('txt-mi-nombre').value = prog.nombre || '';
+        // Con lista cargada el campo de texto está oculto: hay que dejar el
+        // nombre donde el usuario lo va a ver, o parecerá que no se recuperó.
+        var selNom = $('sel-mi-nombre');
+        var enLista = Array.prototype.some.call(selNom.options, function (o) {
+          return o.value === prog.nombre;
+        });
+        if (enLista) {
+          selNom.value = prog.nombre;
+          $('txt-mi-nombre').value = '';
+        } else {
+          if (!selNom.classList.contains('oculto')) selNom.value = '__otro__';
+          $('txt-mi-nombre').classList.remove('oculto');
+          $('txt-mi-nombre').value = prog.nombre || '';
+        }
         moduloDeArranque = prog.modulo;
         ir('p-consentimiento');
       });

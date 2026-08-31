@@ -382,7 +382,7 @@
     });
 
     var gente = {}, minutos = 0, conExamen = 0, aprobados = 0, primerIntento = 0;
-    var interrupciones = 0, individuales = 0;
+    var interrupciones = 0, individuales = 0, interrumpidos = 0;
 
     sesiones.forEach(function (s) {
       // duracionMin ya viene con la espera y la pausa descontadas: es tiempo
@@ -400,6 +400,11 @@
             aprobados += 1;
             if (p.examen.intento === 1) primerIntento += 1;
           }
+        } else if (p.examenAbandonado) {
+          // Presentó y no terminó: dejarlo fuera del denominador inflaría la
+          // tasa de aprobación, que es justo el número que va a una reunión.
+          conExamen += 1;
+          interrumpidos += 1;
         }
       });
     });
@@ -418,6 +423,7 @@
       // porcentaje sobre todos inflaría el resultado con los que no lo tomaron.
       tasaAprobacion: conExamen ? Math.round((aprobados / conExamen) * 100) : null,
       tasaPrimerIntento: conExamen ? Math.round((primerIntento / conExamen) * 100) : null,
+      examenesInterrumpidos: interrumpidos,
       interrupciones: interrupciones
     };
   }
