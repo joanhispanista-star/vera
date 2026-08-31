@@ -66,6 +66,30 @@ lo llamó el jefe o porque entró una llamada **es** el trabajo. Por eso:
 - **Retomar**: si la sesión se corta, al abrir aparece *"quedó a medias… en el
   módulo 4"* con botón para continuar. El acta parcial se archiva antes.
 
+### La entrevista de bienvenida
+
+Antes del curso, en modo individual, Vera le hace al asesor cinco preguntas
+cortas sobre él: de dónde viene, a qué se dedicaba, qué experiencia trae, cómo
+se siente hablando por teléfono, qué espera del trabajo. **Reacciona a lo que
+responde** y más adelante vuelve sobre ello ("esto tú ya lo has vivido, por lo
+que me contaste"). El acta le entrega al supervisor la ficha: *"Quién es
+Camilo Restrepo"*, con lo que él mismo contó.
+
+Esto es recolección de datos personales de un empleado (Ley 1581), así que:
+
+- Vera **pide permiso** antes de la primera pregunta, dice para qué es y quién
+  lo va a leer. Si el asesor no quiere, la capacitación sigue igual.
+- Cada pregunta trae **"Prefiero no decir"**, y lo que se salta no aparece en
+  el acta. No se rellena ni se interpreta nada.
+- El **estado civil viene apagado** por defecto. Preguntarlo no es ilegal, pero
+  es el dato que en una decisión laboral se lee como discriminación, y para
+  romper el hielo no aporta nada que no aporten las otras cinco. Se puede
+  encender desde el historial, con la advertencia a la vista.
+- No se pregunta nada de salud, religión, política ni orientación sexual: son
+  datos sensibles y su tratamiento tiene reglas más duras.
+
+Se configura (o se apaga entera) en **Historial › Entrevista de bienvenida**.
+
 ### Ver el flujo del asesor sin cámara
 
 En **Modo demostración**, si escribes un nombre, la sala simulada corre con
@@ -313,6 +337,7 @@ Todo es web estándar, sin dependencias ni build:
 - `index.html` — las 6 pantallas (inicio, consentimiento, sala, acta,
   historial, constancia) + el editor de contenido.
 - `contenido.js` — los cursos en texto plano editable; parser, exportar/importar.
+- `bienvenida.js` — la entrevista de bienvenida y qué NO se pregunta.
 - `historial.js` — el archivo de actas: agregación por persona, CSV, respaldo,
   borrado (Ley 1581), vigencia/recertificación, folio SHA-256 y el borrador
   de rescate.
