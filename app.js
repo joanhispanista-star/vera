@@ -97,7 +97,9 @@
     }).join('');
     sel.value = String(window.ContenidoLib.indiceActivo());
     contenido = window.ContenidoLib.obtener();
-    var preguntas = contenido.modulos.filter(function (m) { return m.pregunta; }).length;
+    var preguntas = contenido.modulos.reduce(function (n, m) {
+      return n + (m.preguntas || []).length; // antes contaba MÓDULOS con pregunta, no preguntas
+    }, 0);
     if (contenido.modulos.length === 0) {
       $('inicio-resumen').innerHTML =
         '⚠ El contenido guardado no tiene módulos con puntos: Vera no tendría nada que dictar. ' +
@@ -401,8 +403,10 @@
   function pintarModulo(m, idx) {
     $('barra-fase').textContent = 'Módulo ' + (idx + 1) + ' de ' + contenido.modulos.length;
     $('diapositiva-titulo').textContent = m.titulo;
+    // Escapado: el contenido lo escribe el cliente en el editor, o llega
+    // dentro de un paquete de cursos importado de otro computador.
     $('diapositiva-puntos').innerHTML = m.puntos.map(function (pt) {
-      return '<li>' + pt + '</li>';
+      return '<li>' + escaparHtml(pt) + '</li>';
     }).join('');
   }
 
@@ -644,6 +648,22 @@
      curso, en orden variado; si no alcanza la nota mínima, Vera dice qué
      repasar y se puede reintentar. Nadie sale con constancia de aprobación
      sin haberla ganado: es el punto entero del producto para este cliente. */
+  /* Intentos del examen, por persona y curso, con vigencia de un día: Vera
+     dice "ya hiciste los intentos de hoy", así que mañana vuelven a empezar. */
+  function claveIntentos(nombre) {
+    var hoy = new Date().toISOString().slice(0, 10);
+    return 'vera.intentos.' + hoy + '.' + window.ContenidoLib.claveActiva() + '.' +
+      String(nombre || '').toLowerCase().trim();
+  }
+
+  function leerIntentos(nombre) {
+    try { return parseInt(localStorage.getItem(claveIntentos(nombre)), 10) || 0; } catch (e) { return 0; }
+  }
+
+  function guardarIntentos(nombre, n) {
+    try { localStorage.setItem(claveIntentos(nombre), String(n)); } catch (e) {}
+  }
+
   function rondaExamen() {
     /* Al asesor que se registró, no a "la primera cara presente": si alguien
        pasa por detrás en el momento equivocado, presentes()[0] puede ser otra
@@ -657,6 +677,7 @@
     if (!quien) quien = window.Motor.presentes()[0] || todas[0];
     if (!quien) return Promise.resolve();
 
+    if (!intentoExamen) intentoExamen = leerIntentos(quien.nombre);
     var armado = window.Examen.armar(contenido);
     if (!armado.preguntas.length) {
       // Sin preguntas calificables no hay examen que valga: se dice, en vez de
@@ -669,6 +690,10 @@
     }
 
     intentoExamen += 1;
+    // Los intentos se guardan por persona y por curso: sin esto, recargar la
+    // página los reiniciaba y Vera quedaba prometiendo "los intentos de hoy"
+    // sobre un contador que se borraba con F5.
+    guardarIntentos(quien.nombre, intentoExamen);
     fase = 'examen';
     quien.respuestas = []; // el examen se califica solo con este intento
     $('btn-duda').classList.add('oculto'); // en el examen no se repite el contenido
@@ -1861,7 +1886,7 @@
         var sel = $('sel-mi-nombre');
         var usandoLista = !sel.classList.contains('oculto');
         (usandoLista ? sel : $('txt-mi-nombre')).focus();
-        $('resultado-voz').textContent = usandoLista
+        $('aviso-nombre').textContent = usandoLista
           ? 'Elige tu nombre de la lista para poder emitir tu constancia.'
           : 'Escribe tu nombre para poder emitir tu constancia.';
         return;
@@ -1875,11 +1900,11 @@
       if (ev.target.value === '__otro__') {
         $('txt-mi-nombre').classList.remove('oculto');
         $('txt-mi-nombre').focus();
-        $('resultado-voz').textContent = 'Escríbelo completo, igual que aparece en la nómina: ' +
+        $('aviso-nombre').textContent = 'Escríbelo completo, igual que aparece en la nómina: ' +
           'si lo escribes distinto, tus capacitaciones quedan en dos fichas separadas.';
       } else {
         $('txt-mi-nombre').classList.add('oculto');
-        $('resultado-voz').textContent = '';
+        $('aviso-nombre').textContent = '';
       }
     });
     $('txt-mi-nombre').addEventListener('keydown', function (ev) {
@@ -1946,6 +1971,17 @@
 
     $('btn-saltar').addEventListener('click', function () { window.Vera.callar(); });
     $('btn-pausar').addEventListener('click', alternarPausa);
+    /* "No sé": sin esta salida, quien no sabe una pregunta se queda mirando la
+       pantalla sin poder avanzar. Cuenta como incorrecta —no se regala nada—
+       pero deja seguir, que es lo que haría cualquier examen de papel. */
+    $('btn-no-se').addEventListener('click', function () {
+      if (!resolverOpcion) return;
+      $('opciones-lista').querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      var r = resolverOpcion;
+      resolverOpcion = null;
+      r(-1);
+    });
+
     $('opciones-lista').addEventListener('click', function (ev) {
       var boton = ev.target.closest('[data-op]');
       if (!boton || !resolverOpcion) return;

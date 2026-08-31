@@ -51,6 +51,10 @@
       (m.preguntas || []).forEach(function (q) {
         if (q.tipo !== 'opciones' || !q.opciones || !q.opciones.length) { abiertasFuera++; return; }
         if (!q.opciones.some(function (o) { return o.correcta; })) { abiertasFuera++; return; }
+        // Y necesita al menos una INCORRECTA: si todas las opciones son buenas,
+        // la pregunta se acierta sin saber nada. Punto regalado en un examen
+        // que decide si alguien sale al teléfono.
+        if (!q.opciones.some(function (o) { return !o.correcta; })) { abiertasFuera++; return; }
         // Las opciones también se barajan: si siempre la primera es la buena,
         // el examen se aprueba por costumbre y no por saber.
         var ops = q.opciones.slice();

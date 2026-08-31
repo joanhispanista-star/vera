@@ -71,8 +71,9 @@
         ese audio en sus servidores. Quien no lo quiera, puede responder siempre por teclado.</p>
         <p>Al cerrar la sesión solo queda el acta (nombres, atención estimada y respuestas), guardada
         localmente. Al empezar, el navegador pedirá permiso de cámara y micrófono: acéptelos.</p>
-        <p><strong>Ley 1581 de 2012 (habeas data):</strong> antes de empezar, los asistentes deben ser
-        informados de esto y autorizar el uso de la cámara y el micrófono. Léales este aviso o proyéctelo.</p>
+        <p><strong>Ley 1581 de 2012 (habeas data):</strong> quien vaya a capacitarse tiene que estar
+        informado de esto y autorizarlo. Si vas a hacer tu capacitación solo, con leer este aviso basta;
+        si hay un grupo en la sala, léeselo o proyéctalo antes de empezar.</p>
       </div>
       <div class="prueba-mic">
         <button id="btn-probar-voz" class="btn btn-secundario">🔊 Probar la voz de Vera</button>
@@ -96,12 +97,14 @@
       </div>
       <label class="fila-consentimiento">
         <input type="checkbox" id="chk-consentimiento">
-        <span>Informé a los asistentes y autorizaron el uso de la cámara y el micrófono en esta sesión.</span>
+        <span>Leí este aviso y autorizo el uso de la cámara y el micrófono en esta sesión. Si hay un
+          grupo, les informé y ellos también autorizaron.</span>
       </label>
       <div class="datos-sesion" id="zona-solo">
         <label for="txt-mi-nombre">Tu nombre completo <span>(para tu constancia)</span></label>
         <select id="sel-mi-nombre" class="oculto"></select>
         <input type="text" id="txt-mi-nombre" placeholder="Ej.: Camilo Restrepo" autocomplete="name">
+        <div id="aviso-nombre" class="respuesta-aviso" style="margin-top:8px"></div>
       </div>
       <div class="botonera">
         <button id="btn-modo-solo" class="btn btn-primario" disabled>Empezar mi capacitación</button>
@@ -165,6 +168,9 @@
         <div id="zona-opciones" class="zona-entrada oculto">
           <div id="opciones-pregunta" class="respuesta-para"></div>
           <div id="opciones-lista" class="opciones-lista"></div>
+          <div class="fila-entrada">
+            <button id="btn-no-se" class="btn btn-mini" title="Cuenta como respuesta incorrecta, pero no te deja atrapado">No sé — pasar a la siguiente</button>
+          </div>
         </div>
 
         <div id="zona-reintento" class="zona-entrada oculto">
