@@ -132,7 +132,15 @@
       // al terminar, y sin esto Vera seguiría hablando con la boca quieta.
       animarBoca(true);
       if (MODO_RAPIDO || !window.speechSynthesis) {
-        setTimeout(resolver, MODO_RAPIDO ? 250 : 900);
+        var listoRapido = false;
+        var terminarRapido = function () {
+          if (listoRapido) return;
+          listoRapido = true;
+          terminarFraseActual = null;
+          resolver();
+        };
+        terminarFraseActual = terminarRapido;
+        setTimeout(terminarRapido, MODO_RAPIDO ? 250 : 900);
         return;
       }
       var u = new SpeechSynthesisUtterance(frase);
@@ -145,8 +153,11 @@
       var terminar = function () {
         if (listo) return;
         listo = true;
+        terminarFraseActual = null;
         resolver();
       };
+      // Se publica DESPUÉS de declararla: con var, arriba todavía es undefined.
+      terminarFraseActual = terminar;
       u.onend = terminar;
       u.onerror = terminar;
       // Red de seguridad: si el navegador nunca dispara onend (pasa), no nos colgamos.
@@ -159,6 +170,7 @@
   var Reconocedor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var reconocimientoActivo = null;
   var ultimoErrorVoz = null;
+  var terminarFraseActual = null;  // desbloquea la locución en curso al callar()
 
   // El reconocimiento falla con códigos crípticos; al usuario se le habla claro.
   function explicarErrorVoz(err) {
@@ -234,6 +246,16 @@
     callar: function () {
       cancelado = true;
       if (window.speechSynthesis) speechSynthesis.cancel();
+      /* Desbloquear la frase que YA está sonando. Sin esto, callar() solo
+         evitaba las frases siguientes: la actual se quedaba esperando su
+         propio temporizador, y la cadena que la aguardaba —la que muestra el
+         reintento del examen, por ejemplo— no continuaba nunca. Con voz real
+         suele salvarlo el onend de speechSynthesis; sin voz, no hay quién. */
+      if (terminarFraseActual) {
+        var t = terminarFraseActual;
+        terminarFraseActual = null;
+        t();
+      }
       hablando = false;
       animarBoca(false);
       if (estadoEl) estadoEl.textContent = '';

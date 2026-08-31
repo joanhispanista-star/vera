@@ -139,6 +139,15 @@
   // Honestidad: en modo demo NO hay cámara, y Vera no puede afirmar que ve por ella.
   function textoSaludo() {
     var comun = '. Soy Vera, la capacitadora virtual. Sí: soy una inteligencia artificial, ';
+    // El orden importa: una demostración del modo individual sigue siendo
+    // individual. Antes caía en el saludo de grupo y le hablaba en plural a
+    // una sola persona, que es justo lo que este modo viene a evitar.
+    if (autoestudio && modo !== 'camara') {
+      return saludoPorHora() + ', ' + miNombre + comun +
+        'y esta es una demostración: la cámara no está encendida y la sala es simulada. ' +
+        'Vamos a hacer la capacitación completa igual que la vive un asesor, examen incluido, ' +
+        'para que veas cómo queda.';
+    }
     if (modo !== 'camara') {
       return saludoPorHora() + comun + 'y esta es una sala simulada, para mostrar cómo trabajo. ' +
         'Hoy vamos a hacer la inducción completa, yo voy a estar pendiente de cada uno, ' +
@@ -198,9 +207,11 @@
       if (window.Historial.guardar(pendiente)) window.Historial.borrarBorrador();
       $('aviso-rescate').classList.add('oculto');
     }
-    autoestudio = (elegido === 'solo');
-    modo = autoestudio ? 'camara' : elegido;
-    miNombre = autoestudio ? nombreElegido() : '';
+    // 'solo' = individual con cámara. 'solo-demo' = individual simulado, para
+    // ver el flujo del asesor sin cámara y sin tener a quién capacitar.
+    autoestudio = (elegido === 'solo' || elegido === 'solo-demo');
+    modo = elegido === 'solo' ? 'camara' : (elegido === 'solo-demo' ? 'simulacion' : elegido);
+    miNombre = autoestudio ? (nombreElegido() || 'Asistente') : '';
     grupoSesion = $('txt-grupo').value.trim();
     ir('p-sala');
     window.Vera.iniciar($('vera-contenedor'), $('vera-subtitulo'), $('vera-estado'));
@@ -213,7 +224,7 @@
       arranque = window.Motor.iniciarCamara($('video-camara'), $('lienzo-overlay'));
     } else {
       $('lienzo-sim').classList.remove('oculto');
-      arranque = Promise.resolve(window.Motor.iniciarSimulacion($('lienzo-sim')));
+      arranque = Promise.resolve(window.Motor.iniciarSimulacion($('lienzo-sim'), autoestudio));
     }
 
     Promise.resolve(arranque).then(function (r) {
@@ -1026,9 +1037,13 @@
           }
           if (modo === 'simulacion') {
             // En el demo se elige una opción (la correcta salvo Jorge, que falla
-            // la primera) para que la escena se vea completa.
+            // la primera) para que la escena se vea completa. En la demostración
+            // individual se falla una a propósito: así se ve el camino del
+            // reintento y del repaso dirigido, que es lo que hay que revisar.
             var elegida = q.opciones.findIndex(function (o) { return o.correcta; });
-            if (p.nombreReal === 'Jorge' && idxModulo === 0) {
+            var fallaAdrede = (p.nombreReal === 'Jorge' && idxModulo === 0) ||
+                              (autoestudio && esExamen && idxModulo === 0 && intentoExamen === 1);
+            if (fallaAdrede) {
               elegida = q.opciones.findIndex(function (o) { return !o.correcta; });
             }
             $('barra-fase').textContent = p.nombre + ' elige: “' + q.opciones[elegida].texto + '”';
@@ -1911,7 +1926,11 @@
       if (ev.key === 'Enter' && !$('btn-modo-solo').disabled) $('btn-modo-solo').click();
     });
     $('btn-modo-camara').addEventListener('click', function () { iniciarSesion('camara'); });
-    $('btn-modo-sim').addEventListener('click', function () { iniciarSesion('simulacion'); });
+    $('btn-modo-sim').addEventListener('click', function () {
+      // Con nombre escrito, la demostración corre el flujo INDIVIDUAL: es la
+      // única forma de revisar lo que verá el asesor sin encender la cámara.
+      iniciarSesion(nombreElegido() ? 'solo-demo' : 'simulacion');
+    });
 
     /* Probar la voz antes de tener el grupo sentado. Es la falla que tumba un
        demo delante del cliente: sin voz en español Vera lee con acento inglés,

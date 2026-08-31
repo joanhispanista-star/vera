@@ -63,9 +63,9 @@
     get tope() { return TOPE_CARAS; },
     get salaLlena() { return modo === 'camara' && ultimaDeteccion.length >= TOPE_CARAS; },
 
-    iniciarSimulacion: function (canvasSim) {
+    iniciarSimulacion: function (canvasSim, soloUno) {
       modo = 'simulacion';
-      var simPersonas = window.Simulacion.iniciar(canvasSim);
+      var simPersonas = window.Simulacion.iniciar(canvasSim, soloUno);
       personas = simPersonas.map(function (p) { return prepararPersona(p); });
       arrancarBucle();
       return { ok: true };

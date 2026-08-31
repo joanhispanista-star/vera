@@ -268,11 +268,21 @@
 
   window.Simulacion = {
 
-    iniciar: function (canvas) {
+    /* soloUno: sala de UNA persona, para ver el modo individual sin cámara.
+       Sirve para dos cosas reales: revisar el flujo exacto que va a vivir el
+       asesor (registro, dictado, examen con botones, constancia) antes de
+       sentarlo, y mostrarlo en una reunión donde no hay a quién capacitar. */
+    iniciar: function (canvas, soloUno) {
       lienzo = canvas;
       ctx = lienzo.getContext('2d');
       inicio = Date.now();
-      return crearPersonas();
+      var todas = crearPersonas();
+      if (soloUno) {
+        personas = [todas[0]];
+        personas[0].x = 0.5; // solo en la sala: al centro
+        personas[0].descripcion = 'tú, que estás frente a la cámara';
+      }
+      return personas;
     },
 
     /* El motor llama esto en cada vuelta: actualiza los "actos" y redibuja. */
