@@ -342,6 +342,18 @@ Todo es web estándar, sin dependencias ni build:
   borrado (Ley 1581), vigencia/recertificación, folio SHA-256 y el borrador
   de rescate.
 - `repaso.html` — página aparte para el celular del capacitado.
+- `extraer.html` + `extraer.js` — el cuestionario genérico: convierte lo que sabe
+  alguien del equipo en un curso, y genera el borrador solo.
+- `cuestionario.html` + `cuestionario-datos.js` + `cuestionario.js` — las 29
+  preguntas de nanocréditos **para el dueño**, con las 12 esenciales encendidas
+  de entrada.
+- `cuestionario-asesor.html` + `-datos.js` + `-asesor.js` — las mismas, pero
+  **para un asesor con experiencia**: doce, en segunda persona, y ninguna que lo
+  obligue a describir por escrito algo que lo comprometa. Clave de guardado
+  aparte, para que no se pisen entre sí.
+- `enviar.js` — cómo salen las respuestas del aparato de quien las escribió
+  (compartir archivo, copiar, descargar). Regla: un botón nunca dice que hizo
+  algo que no hizo.
 - `vera.js` — avatar SVG animado, voz (speechSynthesis), oído (SpeechRecognition).
 - `simulacion.js` — la sala simulada con guion (celular, sueño, ausencia).
 - `motor-atencion.js` — MediaPipe Face Landmarker (modo cámara) + la misma
@@ -353,3 +365,7 @@ Decisiones que no se deshacen sin hablarlo:
 1. Todo local y gratis en el MVP — cero APIs pagas antes del primer cliente.
 2. Vera se presenta como IA, siempre.
 3. La interfaz no promete lo que el código no hace.
+4. Nada de lo que se publica describe por escrito una práctica que comprometa a
+   quien la responde o a su empresa. Los cuestionarios preguntan por la
+   pantalla, por la regla y por el error del que entra — nunca «¿qué hiciste
+   tú?» de un empleado con su nombre al lado.
