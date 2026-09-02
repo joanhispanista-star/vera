@@ -3,6 +3,9 @@
 > **Versión para llenar en el computador (recomendada):**
 > https://joanhispanista-star.github.io/vera/cuestionario.html
 > Se guarda sola mientras escribes y trae un modo de «solo las 12 esenciales».
+>
+> **Este cuestionario es el de Joan.** El del asesor es otro:
+> https://joanhispanista-star.github.io/vera/cuestionario-asesor.html
 
 Tú conoces el producto y los procesos. Yo no. Estas preguntas son las que hay
 que responder para que un asesor nuevo se siente solo frente a un computador y
@@ -11,9 +14,12 @@ salga de ahí **listo para cobrar**, sin que nadie le explique nada más.
 **Cómo responder.** A lo bruto y en desorden. Pega los textos tal cual salen
 del teléfono o del sistema, con emojis, mayúsculas y faltas: lo que maquilles
 se convierte en un curso que el asesor no reconoce y no sigue. Cuando una
-respuesta sea incómoda —«nadie lo anota en ninguna parte», «al tercer día se le
-marca a la esposa»— esa es justo la que más sirve: con ella el curso enseña lo
-que de verdad se hace desde el lunes, en vez de recitar la ley.
+respuesta sea incómoda —«eso no lo anota nadie», «el manual dice una cosa y se
+hace otra»— esa es justo la que más sirve: con ella el curso enseña lo que de
+verdad se hace desde el lunes, en vez de recitar la ley.
+
+**Tus respuestas no se publican.** Se guardan solo en tu navegador y solo salen
+de ahí cuando tú oprimes descargar. Nada de lo que escribas viaja a internet.
 
 **Si solo tienes 45 minutos**, responde las doce marcadas ⭐. Con esas ya sale
 un curso de seis módulos dictable el viernes 11, con examen y constancia.
@@ -24,7 +30,7 @@ un curso de seis módulos dictable el viernes 11, con examen y constancia.
 
 *Para qué sirve: Módulo 0 (el glosario hablado) y el tamaño del curso entero: cuántos módulos caben, con qué palabras se dictan y qué se le promete al asesor sobre su plata.*
 
-### 1. ⭐ Quiénes se sientan el viernes 11: cuántos son, para cuál de las apps van (BilleTecla, PlataX, Dinerbacano…), a qué cartera entran (M0 PP, M0 VP, M1-1…), si han cobrado antes en otra parte, cuánto dura ahí un asesor en promedio, y —lo que más manda— cuánto tiempo REAL me das de curso antes de sentarlos a producir: ¿una hora?, ¿dos?, ¿media jornada?
+### 1. ⭐ Quiénes se sientan el viernes 11: cuántos son, para cuál de las apps van (la que sea), a qué cartera entran (M0 PP, M0 VP, M1-1…), si han cobrado antes en otra parte, cuánto dura ahí un asesor en promedio, y —lo que más manda— cuánto tiempo REAL me das de curso antes de sentarlos a producir: ¿una hora?, ¿dos?, ¿media jornada?
 
 > Seis líneas sueltas, sin redactar. La última decide todo: con una hora el curso son 6 módulos y hay que dejar cosas por fuera; con media jornada caben 12 y cabe la práctica con casos. Si entran a M0 el curso es de día cero; si entran a M1-1 es otro curso.
 
@@ -204,7 +210,7 @@ un curso de seis módulos dictable el viernes 11, con examen y constancia.
 
 ### 19. ⭐ Cuéntame, día por día y sin maquillar, qué se hace hoy con una cuenta desde que vence hasta que sale de las manos del asesor: qué día WhatsApp, qué día llamada, qué día SMS, cuándo cambia de categoría o de equipo (M0 → M1-1) y qué pasa al final. Y en cada paso dime a QUÉ NÚMERO se marca o se escribe y de dónde salió ese número: el que registró el cliente, un segundo número del formulario, una referencia personal, el del trabajo.
 
-> Escríbelo literal aunque suene mal: «al tercer día se marca al segundo número, que casi siempre es la esposa, y se deja razón sin decir de qué se trata». Si me lo maquillas, el curso enseña un procedimiento que nadie sigue. El artículo 4 de la Ley 2300 prohíbe sin excepción contactar a un tercero (solo se salvan avalista, codeudor y deudor solidario; la referencia personal NO), así que hay que enseñar qué se hace en su lugar, y ese paso no se escribe sin saber cuál es el paso de hoy.
+> Un renglón por día, del 1 al último. Escríbelo como pasa de verdad, sin maquillarlo: si el procedimiento real se aparta de lo que dice el manual, esa diferencia es justo lo que el curso tiene que resolver — no la puedo adivinar. El artículo 4 de la Ley 2300 prohíbe sin excepción contactar a un tercero, así que de aquí sale una regla dura del curso: hay que saber qué se hace hoy para poder escribirla.
 
 **Respuesta:**
 
@@ -231,7 +237,7 @@ un curso de seis módulos dictable el viernes 11, con examen y constancia.
 
 ### 22. ⭐ Un cliente responde «no me vuelvan a escribir» o «solo contácteme por correo». Hoy, en la práctica: ¿dónde queda anotado eso?, ¿quién lo ve?, ¿y qué pasa mañana cuando la cuenta le cae a otro asesor o cuando ese mismo señor debe también en otra de tus apps?
 
-> Tres líneas. Si la respuesta es «no queda en ninguna parte, el asesor lo anota en su cuaderno y cuando la cuenta rota se pierde», dímelo así: esa respuesta incómoda sirve, una bonita no. Con ella definimos en el curso el apaño que se hace desde el lunes (una etiqueta en WhatsApp, una hoja compartida, avisarle al coordinador). Es la infracción más fácil de probar en contra, porque el cliente la denuncia con captura de pantalla.
+> Tres líneas. Si hoy eso no queda registrado en ninguna parte, dímelo así de simple: con esa respuesta el curso define el apaño que se usa desde el lunes (una etiqueta, una hoja compartida) y de paso queda escrito lo que hay que pedirle al ADMIN. Una respuesta bonita no sirve para nada.
 
 **Respuesta:**
 

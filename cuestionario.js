@@ -245,23 +245,19 @@
       descargar('respuestas-nanocreditos.txt', texto);
     });
 
+    /* El botón dice lo que de verdad pasó. Antes confirmaba «¡Copiado!» aunque
+       execCommand hubiera devuelto false, y en iPhone eso significaba pegar un
+       mensaje vacío creyendo que se acababa de mandar el trabajo. */
     $('btn-copiar').addEventListener('click', function () {
       var texto = exportar();
       $('salida').value = texto;
-      var confirmar = function () {
-        $('btn-copiar').textContent = '¡Copiado!';
-        setTimeout(function () { $('btn-copiar').textContent = 'Copiar todo'; }, 1500);
-      };
-      var manual = function () {
-        $('salida').select();
-        try { document.execCommand('copy'); } catch (e) {}
-        confirmar();
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(texto).then(confirmar).catch(manual);
-      } else {
-        manual();
-      }
+      window.Enviar.copiar(texto, $('salida')).then(function (resultado) {
+        var boton = $('btn-copiar');
+        boton.textContent = resultado === 'copiado'
+          ? '¡Copiado!'
+          : 'No pude copiar — está seleccionado abajo';
+        setTimeout(function () { boton.textContent = 'Copiar todo'; }, 2500);
+      });
     });
   });
 })();

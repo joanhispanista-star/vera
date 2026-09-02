@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cómo cobras tú</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .hoja { max-width: 760px; margin: 0 auto; padding: 18px 16px 80px; }
+  .campo, .campo-corto { margin-bottom: 22px; padding-left: 12px; border-left: 3px solid var(--borde); }
+  .campo.hecha { border-left-color: var(--exito, #4caf50); }
+  label { display: block; font-size: 16px; margin-bottom: 5px; line-height: 1.45; }
+  .num { color: var(--texto-suave); font-weight: 600; margin-right: 2px; }
+  .pista { display: block; font-size: 13px; color: var(--texto-suave); margin-bottom: 9px; line-height: 1.55; }
+  textarea, input[type=text] {
+    width: 100%; background: var(--fondo-suave); border: 1px solid var(--borde);
+    border-radius: 8px; color: var(--texto); font-family: inherit; font-size: 16px;
+    line-height: 1.55; padding: 10px 12px;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  textarea:focus, input[type=text]:focus { outline: none; border-color: var(--acento); }
+  .molde {
+    background: var(--fondo); border: 1px dashed var(--borde); border-radius: 8px;
+    padding: 9px 12px; margin-bottom: 9px;
+  }
+  .molde span { display: block; font-size: 11.5px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+  .molde pre {
+    font-family: Consolas, monospace; font-size: 12.5px; color: var(--texto-suave);
+    white-space: pre-wrap; margin: 0 0 8px; line-height: 1.5;
+  }
+  .corte {
+    background: var(--fondo-suave); border: 1px solid var(--borde); border-left: 3px solid var(--acento);
+    border-radius: 8px; padding: 13px 15px; margin: 4px 0 22px; font-size: 14px; line-height: 1.55;
+  }
+  .avance {
+    position: sticky; top: 0; z-index: 5; background: var(--fondo);
+    border-bottom: 1px solid var(--borde); padding: 11px 0 9px; margin-bottom: 20px;
+    font-size: 14px; color: var(--texto-suave);
+  }
+  .avance .barra-avance { height: 6px; background: var(--fondo-suave); border-radius: 3px; margin-top: 7px; overflow: hidden; }
+  .avance .barra-avance i { display: block; height: 100%; background: var(--acento); border-radius: 3px; transition: width .3s; }
+  .reglas {
+    background: var(--fondo-suave); border: 1px solid var(--borde); border-radius: var(--radio);
+    padding: 14px 16px; margin: 16px 0 22px; font-size: 13.5px; line-height: 1.6;
+  }
+  .reglas b { color: var(--acento); }
+  .reglas ol { margin: 8px 0 0; padding-left: 20px; }
+  .reglas li { margin-bottom: 6px; }
+  .cierre { background: var(--fondo-tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 20px 22px; }
+  .cierre h2 { color: var(--acento); font-size: 18px; margin-bottom: 8px; }
+  #tamano { display: block; font-size: 12.5px; color: var(--texto-suave); margin: 10px 0; }
+  #tamano.alerta { color: #ffb74d; }
+  .aviso { border-radius: 8px; padding: 11px 14px; margin: 12px 0; font-size: 14px; line-height: 1.5; }
+  .aviso.bueno { background: rgba(76,175,80,.13); border: 1px solid rgba(76,175,80,.35); }
+  .aviso.malo  { background: rgba(255,167,38,.13); border: 1px solid rgba(255,167,38,.35); }
+  #salida {
+    width: 100%; min-height: 200px; background: var(--fondo); border: 1px solid var(--acento);
+    border-radius: 8px; color: var(--texto); font-family: Consolas, monospace;
+    font-size: 12.5px; line-height: 1.5; padding: 12px; margin-top: 12px; resize: vertical;
+  }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">VERA <span>cómo cobras tú</span></div>
+  <div class="cabecera-nota">Se guarda solo mientras escribes, en este aparato.</div>
+</header>
+
+<main class="hoja">
+  <h1>Cómo cobras tú</h1>
+  <p class="intro">
+    Entran asesores nuevos y hay que enseñarles a cobrar. El manual no dice lo
+    que de verdad funciona: cuál mensaje sí contestan, qué se le responde al que
+    dice «la otra semana le pago», por cuál cuenta se arranca el día.
+    <strong>Eso lo sabes tú, que lo haces todos los días.</strong>
+  </p>
+  <p class="letra-menuda">
+    Son 12 preguntas y unos 25 minutos. Aquí no se te está calificando: se está
+    copiando lo que ya te funciona, para que el que entre lo haga igual desde el
+    primer día. Escribe con tus palabras, sin escribir bonito.
+  </p>
+
+  <div class="reglas">
+    <b>Tres cosas antes de empezar</b>
+    <ol>
+      <li><b>No escribas datos de clientes.</b> Ni nombres, ni cédulas, ni
+        teléfonos, ni conversaciones copiadas, ni capturas de pantalla. Cuando
+        pidamos un mensaje, es la plantilla —la que dice {nombre}—, no el chat.
+        Y no escribas ninguna contraseña en ningún lado.</li>
+      <li><b>Cuéntanos cómo funciona la cosa, no qué hiciste tú un día.</b>
+        Ninguna pregunta te pide que confieses nada. Si alguna te lo parece,
+        está mal escrita: sáltala y escribe «esa la contesta el jefe».</li>
+      <li><b>«No sé» es una buena respuesta.</b> Varias de estas son sobre cosas
+        que a lo mejor nadie te explicó — y que no te las hayan explicado es
+        justo lo que el curso tiene que arreglar.</li>
+    </ol>
+  </div>
+
+  <p class="letra-menuda">
+    Lo que escribas no se manda a ningún servidor: se queda en este aparato
+    hasta que tú oprimas el botón de mandar, al final. Puedes cerrar y seguir
+    después, pero tiene que ser en este mismo aparato y el mismo navegador. Si
+    abriste este enlace dentro de WhatsApp, oprime los tres puntos de arriba y
+    escoge «Abrir en el navegador», o puedes perder lo que escribas.
+  </p>
+
+  <div class="avance">
+    <span id="avance-texto">…</span>
+    <div class="barra-avance"><i id="avance-barra" style="width:0%"></i></div>
+  </div>
+
+  <div id="ficha"></div>
+  <div id="formulario"></div>
+
+  <section class="cierre">
+    <h2>Mandar tus respuestas</h2>
+    <p class="letra-menuda" id="como-mandar">…</p>
+    <span id="tamano"></span>
+    <div id="aviso" class="aviso" hidden></div>
+    <div class="botonera" style="justify-content:flex-start;margin-bottom:10px">
+      <button id="btn-mandar" class="btn btn-primario" hidden>Mandar mis respuestas</button>
+      <button id="btn-descargar" class="btn btn-primario" hidden>Descargar el archivo</button>
+      <button id="btn-copiar" class="btn btn-secundario">Copiar todo</button>
+      <button id="btn-borrar" class="btn btn-mini">Borrar lo escrito de este aparato</button>
+    </div>
+    <textarea id="salida" spellcheck="false" hidden></textarea>
+    <p class="letra-menuda">
+      Lo que dejes vacío no se rellena con nada inventado: sale marcado como un
+      hueco. Y el curso que salga de esto va a decir que se armó con lo que
+      enseñaste tú.
+    </p>
+  </section>
+</main>
+
+<script src="enviar.js"></script>
+<script src="cuestionario-asesor-datos.js"></script>
+<script src="cuestionario-asesor.js"></script>
+</body>
+</html>
