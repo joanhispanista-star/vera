@@ -26,11 +26,65 @@
 
   function $(id) { return document.getElementById(id); }
 
+  /* La verdad vive en MEMORIA; localStorage es solo el espejo que permite
+     cerrar y volver mañana.
+
+     Al revés —que es como estaba— hay un fallo callado y caro: si setItem
+     lanza, el catch se lo traga, todo lo demás sigue leyendo de un
+     localStorage vacío, y entonces el contador se queda en «Vas en 0 de 12»,
+     ninguna caja se pone verde y el archivo que el asesor manda dice «SIN
+     RESPONDER: 1, 2, 3…12» después de que escribió veinticinco minutos.
+
+     Y no es un caso raro: es exactamente el escenario que estamos planeando.
+     Un .html abierto desde WhatsApp en Android llega como content://, origen
+     opaco, y ahí setItem lanza SecurityError. También en el navegador de
+     dentro de WhatsApp y en Safari privado.
+
+     Es la misma regla de enviar.js —un botón nunca dice que hizo algo que no
+     hizo— que se estaba rompiendo una capa más arriba. */
+  var memoria = null;
+  var guardadoVivo = true;
+
   function leer() {
-    try { return JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) { return {}; }
+    if (memoria) return memoria;
+    try { memoria = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; }
+    catch (e) { memoria = {}; }
+    return memoria;
   }
+
   function guardar(datos) {
-    try { localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch (e) {}
+    memoria = datos || {};
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify(memoria));
+      return true;
+    } catch (e) {
+      // Lo escrito NO se pierde: sigue en memoria y el export lo saca entero.
+      // Lo que se pierde es poder cerrar la pestaña, y eso hay que decirlo.
+      if (guardadoVivo) { guardadoVivo = false; avisarSinGuardado(); }
+      return false;
+    }
+  }
+
+  /* Se prueba a escribir de verdad al arrancar. No basta con mirar si
+     localStorage existe: en un origen opaco el objeto está y es setItem el que
+     lanza, así que la única comprobación que vale es escribir. */
+  function guardadoFunciona() {
+    try {
+      localStorage.setItem(CLAVE + '.prueba', '1');
+      localStorage.removeItem(CLAVE + '.prueba');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function avisarSinGuardado() {
+    var caja = $('sin-guardado');
+    if (!caja) return;
+    caja.hidden = false;
+    caja.textContent = 'Ojo: este navegador no está guardando lo que escribes. ' +
+      'Lo que ya pusiste no se ha perdido y se manda completo, pero NO cierres ' +
+      'esta pestaña hasta enviarlo, porque no vas a poder volver a ella.';
   }
 
   function escapar(t) {
@@ -164,15 +218,26 @@
     pintarAvance();
     pintarTamano();
 
+    if (!guardadoFunciona()) avisarSinGuardado();
+
     /* El botón de mandar solo se pinta si este aparato de verdad puede
        compartir un archivo. Se pregunta antes, no al oprimirlo: un botón que
-       existe y no funciona es la misma mentira que el «¡Copiado!» falso. */
+       existe y no funciona es la misma mentira que el «¡Copiado!» falso.
+
+       Y cuando no se puede compartir, el principal es COPIAR, no descargar.
+       Descargar en un celular deja un .txt en la carpeta de Descargas que el
+       asesor tiene que ir a buscar con un explorador de archivos para poder
+       adjuntarlo: tres pasos, y en el tercero se pierde la gente. Lo respondido
+       pesa unos 6 KB, muy por debajo del tope de un mensaje de WhatsApp, así
+       que pegarlo en el chat siempre cabe. Descargar se queda de respaldo. */
     if (window.Enviar.puedeCompartirArchivo()) {
       $('btn-mandar').hidden = false;
       $('como-mandar').textContent = 'Oprime «Mandar mis respuestas»: se abre el menú de compartir y ahí escoges WhatsApp y a quién. Mándaselo a la misma persona que te pasó este enlace.';
     } else {
+      $('btn-copiar').className = 'btn btn-primario';
       $('btn-descargar').hidden = false;
-      $('como-mandar').textContent = 'Oprime «Descargar el archivo» y adjúntalo por WhatsApp a la misma persona que te pasó este enlace. Si prefieres, «Copiar todo» y lo pegas en el chat.';
+      $('btn-descargar').className = 'btn btn-secundario';
+      $('como-mandar').textContent = 'Oprime «Copiar todo» y pégalo en el chat de WhatsApp de la misma persona que te pasó este enlace. Si prefieres mandarlo como archivo, «Descargar el archivo» y lo adjuntas.';
     }
 
     var guardarCampo = function (ev) {
