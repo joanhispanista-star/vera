@@ -8,8 +8,30 @@
 (function () {
   'use strict';
 
+  /* MediaPipe vive en la carpeta, no en internet.
+
+     Hasta el 4 de septiembre de 2026 esto se bajaba de dos dominios externos
+     cada vez que alguien encendía la cámara. Ese día Joan reportó que desde
+     otro computador el sitio "ni siquiera deja abrir" — con el sitio
+     respondiendo 200 desde aquí. Es decir: esa red filtra. Y una red que
+     filtra github.io filtra también jsdelivr y googleapis, así que la
+     capacitación se habría caído el día que importaba, en el computador que
+     importaba, con el error más difícil de entender: la cámara enciende, se
+     ve la imagen, y Vera nunca reconoce a nadie.
+
+     Ahora se sirven desde vendor/ (22 MB, versionados a propósito): el sistema
+     entero funciona sin internet, que es lo que permite llevárselo en una USB
+     a la sala. El CDN queda solo de respaldo, para cuando alguien publique los
+     .js sin la carpeta vendor al lado. */
   var CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
-  var MODELO = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+  var CDN_MODELO = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
+  // Absolutas contra el documento: un especificador relativo no vale en
+  // import() dinámico, y así también funciona abriendo el archivo con file://
+  function local(ruta) {
+    try { return new URL('vendor/' + ruta, document.baseURI).href; }
+    catch (e) { return 'vendor/' + ruta; }
+  }
 
   // Umbrales de "está mirando": salen de probar frente a una cámara real.
   // Con calibración por persona (se toma en el registro, cuando cada uno mira
@@ -276,11 +298,22 @@
 
   // ── Modo cámara ─────────────────────────────────────────
   function cargarLandmarker() {
-    return import(CDN + '/vision_bundle.mjs').then(function (vision) {
-      return vision.FilesetResolver.forVisionTasks(CDN + '/wasm').then(function (fileset) {
+    /* Primero la carpeta, y solo si no está, internet. El orden importa: al
+       revés, una red que deja pasar el CDN pero va lenta haría esperar de
+       balde teniendo los archivos al lado. */
+    var desdeLaCarpeta = true;
+    return import(local('vision_bundle.mjs'))
+      .catch(function () {
+        desdeLaCarpeta = false;
+        return import(CDN + '/vision_bundle.mjs');
+      })
+      .then(function (vision) {
+      var carpetaWasm = desdeLaCarpeta ? local('wasm') : CDN + '/wasm';
+      var modelo = desdeLaCarpeta ? local('face_landmarker.task') : CDN_MODELO;
+      return vision.FilesetResolver.forVisionTasks(carpetaWasm).then(function (fileset) {
         var crear = function (delegado) {
           return vision.FaceLandmarker.createFromOptions(fileset, {
-            baseOptions: { modelAssetPath: MODELO, delegate: delegado },
+            baseOptions: { modelAssetPath: modelo, delegate: delegado },
             runningMode: 'VIDEO',
             // Un salón de inducción de call center tiene 12-20 personas. Con el
             // tope en 8, Vera ignoraba en silencio a las demás mientras la

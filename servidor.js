@@ -19,7 +19,15 @@ const TIPOS = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  /* Los tres de MediaPipe en vendor/. Sin el tipo correcto el navegador se
+     NIEGA a ejecutar un módulo ES ("Failed to fetch dynamically imported
+     module") aunque el archivo llegue entero con un 200 — que es justo el
+     error que parece un problema de red y no lo es. El .task es el modelo de
+     rostros y con octet-stream va bien. */
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.task': 'application/octet-stream'
 };
 
 http.createServer(function (peticion, respuesta) {

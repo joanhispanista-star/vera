@@ -1,0 +1,11 @@
+# vendor/ es MediaPipe tal como lo publica Google: no se toca ni un byte.
+#
+# Sin esto, git en Windows le cambia los saltos de línea a los .js de la
+# librería al clonar, y un .wasm o el modelo de rostros normalizados quedan
+# corruptos. El fallo sería del peor tipo: la cámara enciende, se ve la imagen,
+# y el detector nunca reconoce una cara — sin un solo error en pantalla.
+vendor/** -text
+
+# Los binarios, marcados como tales para que git ni intente diferenciarlos.
+*.wasm binary
+*.task binary
