@@ -78,6 +78,20 @@
     }
   }
 
+  /* Esta misma página se reparte de dos formas y hay que hablarle distinto a
+     cada una: quien abrió un enlace recibió un enlace, y quien abrió el archivo
+     adjunto nunca vio ninguno. empaquetar.js marca el body con data-suelto y
+     aquí es donde por fin se lee. */
+  function esSuelta() {
+    return document.body.dataset.suelto === 'si';
+  }
+
+  function deDondeVino() {
+    return esSuelta()
+      ? 'la persona que te mandó este archivo'
+      : 'la persona que te pasó este enlace';
+  }
+
   function avisarSinGuardado() {
     var caja = $('sin-guardado');
     if (!caja) return;
@@ -218,7 +232,28 @@
     pintarAvance();
     pintarTamano();
 
+    $('nota-guardado').textContent = esSuelta()
+      ? 'Lo que escribas no se manda a ningún lado: se queda en este computador hasta que tú oprimas el botón de mandar, al final. Puedes cerrar y seguir después, pero tiene que ser en este mismo computador, abriendo este mismo archivo.'
+      : 'Lo que escribas no se manda a ningún servidor: se queda en este aparato hasta que tú oprimas el botón de mandar, al final. Puedes cerrar y seguir después, pero tiene que ser en este mismo aparato y el mismo navegador. Si abriste este enlace dentro de WhatsApp, oprime los tres puntos de arriba y escoge «Abrir en el navegador», o puedes perder lo que escribas.';
+
     if (!guardadoFunciona()) avisarSinGuardado();
+
+    /* Dos asesores, el mismo computador: el segundo abre y se encuentra el
+       nombre y las respuestas del primero ya puestas, y al escribir encima las
+       borra. Con el archivo suelto es peor todavía, porque ahí el navegador le
+       da a TODO archivo local el mismo origen: da igual en qué carpeta esté o
+       cómo se llame, dos copias comparten el mismo cajón. Y el plan es
+       justamente dárselo a dos personas. */
+    var yaGuardado = String(leer().nombre || '').trim();
+    if (yaGuardado) {
+      var caja = $('sin-guardado');
+      if (caja.hidden) {
+        caja.hidden = false;
+        caja.textContent = 'Aquí hay respuestas guardadas a nombre de ' + yaGuardado +
+          '. Si tú no eres ' + yaGuardado + ', oprime abajo «Borrar lo escrito de este aparato» ' +
+          'antes de empezar, o vas a escribir encima de lo suyo.';
+      }
+    }
 
     /* El botón de mandar solo se pinta si este aparato de verdad puede
        compartir un archivo. Se pregunta antes, no al oprimirlo: un botón que
@@ -230,14 +265,26 @@
        adjuntarlo: tres pasos, y en el tercero se pierde la gente. Lo respondido
        pesa unos 6 KB, muy por debajo del tope de un mensaje de WhatsApp, así
        que pegarlo en el chat siempre cabe. Descargar se queda de respaldo. */
+    /* NUNCA se esconde una salida que funciona. Antes, si el aparato podía
+       compartir, se pintaba «Mandar» y se ocultaba «Descargar» — y en Windows
+       eso es una trampa: Chrome y Edge dicen que sí pueden compartir, pero la
+       hoja del sistema solo lista apps instaladas desde la Microsoft Store, y
+       el WhatsApp de escritorio de casi todo el mundo no sale ahí. El asesor
+       terminaba, oprimía el botón, se abría un panel sin WhatsApp, y el botón
+       que sí resolvía estaba oculto. */
+    var quien = deDondeVino();
     if (window.Enviar.puedeCompartirArchivo()) {
       $('btn-mandar').hidden = false;
-      $('como-mandar').textContent = 'Oprime «Mandar mis respuestas»: se abre el menú de compartir y ahí escoges WhatsApp y a quién. Mándaselo a la misma persona que te pasó este enlace.';
+      $('btn-descargar').hidden = false;
+      $('btn-descargar').className = 'btn btn-secundario';
+      $('como-mandar').textContent = 'Oprime «Mandar mis respuestas»: se abre el menú de compartir y ahí escoges WhatsApp y a quién. ' +
+        'Si en ese menú no aparece WhatsApp, usa «Copiar todo» y pégalo en el chat. Va para ' + quien + '.';
     } else {
       $('btn-copiar').className = 'btn btn-primario';
       $('btn-descargar').hidden = false;
       $('btn-descargar').className = 'btn btn-secundario';
-      $('como-mandar').textContent = 'Oprime «Copiar todo» y pégalo en el chat de WhatsApp de la misma persona que te pasó este enlace. Si prefieres mandarlo como archivo, «Descargar el archivo» y lo adjuntas.';
+      $('como-mandar').textContent = 'Oprime «Copiar todo» y pégalo en el chat de WhatsApp. ' +
+        'Si prefieres mandarlo como archivo, «Descargar el archivo» y lo adjuntas. Va para ' + quien + '.';
     }
 
     var guardarCampo = function (ev) {

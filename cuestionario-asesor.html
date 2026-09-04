@@ -68,6 +68,23 @@
 </header>
 
 <main class="hoja">
+  <!-- Las 12 preguntas se pintan por JavaScript. Sin él, esta página se ve
+       cargada y entera pero SIN una sola pregunta, y nadie entiende por qué.
+       Pasa de verdad: un iPhone que abre un .html adjunto lo hace con Quick
+       Look, que muestra el HTML con el JavaScript apagado. Diez líneas
+       convierten el peor fallo mudo de la entrega en algo que el asesor puede
+       contestar. -->
+  <noscript>
+    <div class="aviso malo" style="margin-bottom:20px">
+      <b>Este cuestionario no se puede abrir así.</b><br>
+      Necesita un navegador con JavaScript, y aquí está apagado — por eso no ves
+      ninguna pregunta. Si llegaste tocando el archivo desde un iPhone, no va a
+      funcionar de esa forma: ábrelo en un computador con Chrome, o dile a quien
+      te lo mandó que te pase las preguntas por WhatsApp y contéstalas ahí, por
+      escrito o por nota de voz. Sirve igual.
+    </div>
+  </noscript>
+
   <h1>Cómo cobras tú</h1>
   <p class="intro">
     Entran asesores nuevos y hay que enseñarles a cobrar. El manual no dice lo
@@ -97,13 +114,7 @@
     </ol>
   </div>
 
-  <p class="letra-menuda">
-    Lo que escribas no se manda a ningún servidor: se queda en este aparato
-    hasta que tú oprimas el botón de mandar, al final. Puedes cerrar y seguir
-    después, pero tiene que ser en este mismo aparato y el mismo navegador. Si
-    abriste este enlace dentro de WhatsApp, oprime los tres puntos de arriba y
-    escoge «Abrir en el navegador», o puedes perder lo que escribas.
-  </p>
+  <p class="letra-menuda" id="nota-guardado"></p>
 
   <div id="sin-guardado" class="aviso malo" hidden></div>
 
