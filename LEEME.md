@@ -279,6 +279,69 @@ Título de la capacitación
 El contenido de fábrica es una inducción real para asesores de cobranza
 (incluye la Ley 2300 de 2023 — lo que un asesor tiene prohibido hacer).
 
+## La cara de Vera (desde el 26-nov-2026)
+
+Joan pidió que Vera pareciera una persona: el dibujo no le daba al asesor la
+sensación de que alguien le estaba enseñando. Desde entonces Vera es una
+**persona inventada por IA** (no existe; Joan la eligió entre tres) y se mueve
+con **dos videos cortos generados a partir de la misma foto**:
+
+- `persona/vera.jpg`: la foto. Se ve mientras cargan los videos, si fallan o
+  si Windows tiene activado "menos movimiento".
+- `persona/vera-escucha.mp4`: 4,5 s en bucle. Respira, parpadea y sonríe.
+- `persona/vera-habla.mp4`: 3,8 s en bucle. Habla con gestos.
+
+`vera.js` pasa de un video al otro con un fundido de 0,3 s cuando la voz
+empieza y cuando termina. Antes de volver a "escuchar" espera 0,45 s, para no
+saltar de un video al otro entre frase y frase. La pantalla de inicio muestra
+el video de escuchar.
+
+Lo que hay que saber:
+- **Los labios no siguen las palabras exactas.** Eso exige un servicio pago por
+  sesión (HeyGen o similar), y la regla 1 lo prohíbe. Las palabras las llevan
+  la voz y los subtítulos.
+- **La etiqueta "IA · Asistente virtual" va SIEMPRE encima de la cara.** Está en
+  el HTML, no pintada en la foto, para que nunca se pierda al recortar. Ahora
+  que Vera parece una persona, esa etiqueta es lo que cumple la regla 2. No se
+  quita en ninguna pantalla.
+- `Vera.mirar()` ya no mueve nada: en una cara de video no hay ojos que mover
+  sin deformarla. La función se dejó para no tener que tocar la app.
+- **Costo:** 12,36 créditos de Higgsfield, una sola vez. Las tres fotos
+  candidatas con Soul 2 costaron 0,36 y los dos videos de 6 s con Seedance 2.0
+  Mini, 12. **Cero por sesión.** Los videos viven en la carpeta, así que Vera
+  funciona sin internet y desde la USB.
+- **Edición:**
+  - El video de escuchar traía un parpadeo de 1,5 s que parecía sueño. Se
+    recortó a un parpadeo normal.
+  - El de hablar se cortó donde dos cuadros casi coinciden, para que la
+    repetición no salte. Se entra a él por el cuadro más parecido a la cara
+    en reposo, a 2,83 s.
+  - Si hay que rehacerlos, se generan otra vez desde la foto (cámara fija;
+    uno escuchando con la boca cerrada y otro hablando) y se revisan cuadro
+    por cuadro antes de meterlos. Los originales no están en el repo.
+- `servidor.js` responde por pedazos (206) a los videos. Sin eso, Chrome no
+  deja saltar dentro del video y el bucle se queda pegado.
+
+### El diseño de las pantallas
+
+- **La sala es una videollamada.** Vera va en grande a la izquierda. A la
+  derecha están la diapositiva y el panel "La sala", con la cámara y las
+  personas. Frente a un asesor solo, una cara de tamaño real sostiene la
+  atención mejor que un recuadro chico.
+- **La sala tiene el alto de la ventana.** El punto que Vera está leyendo se
+  desplaza solo hasta quedar a la vista (`marcarPuntoActual`). Sin eso, en un
+  proyector de 1024 × 768 el asesor oiría un punto que no ve.
+- **Mientras Vera busca a la gente**, antes del registro, la diapositiva vacía
+  desaparece y la cámara se agranda.
+- **Los puntos ya leídos llevan chulo verde.** Lo marca el CSS (`:has`) sin que
+  la app lleve la cuenta.
+- **Íconos SVG en vez de emojis.** Los botones de dos estados (Pausar y
+  Continuar, Ocultar y Mostrar tablero) tienen los dos rótulos en el HTML, y
+  la app solo pone o quita la clase `.activo`.
+- **Paleta.** `estilo.css` conserva los nombres viejos (`--fondo-tarjeta`,
+  `--borde`…) como alias, porque `cuestionario.html`, `extraer.html` y
+  `repaso.html` usan la misma hoja.
+
 ## Qué es verdad y qué no (honestidad ante el cliente)
 
 - **Verdad**: detección de caras y atención en tiempo real, local y gratis;
@@ -298,7 +361,8 @@ El contenido de fábrica es una inducción real para asesores de cobranza
   disponible como alternativa. No prometer "nada sale a internet" a secas.
 - **Todavía NO** (versión pro, cuando haya un cliente pagando): describir la
   ropa de una persona real ("el de la camisa roja") requiere visión por IA en
-  la nube; un avatar hiperrealista requiere HeyGen o similar; la voz por
+  la nube; que los labios de Vera sigan cada palabra requiere HeyGen o similar
+  (la cara humana de hoy son videos hechos una sola vez); la voz por
   teléfono requiere Vapi. Todo eso cuesta dólares por mes — no se construye
   antes del primer contrato.
 
@@ -354,7 +418,9 @@ Todo es web estándar, sin dependencias ni build:
 - `enviar.js` — cómo salen las respuestas del aparato de quien las escribió
   (compartir archivo, copiar, descargar). Regla: un botón nunca dice que hizo
   algo que no hizo.
-- `vera.js` — avatar SVG animado, voz (speechSynthesis), oído (SpeechRecognition).
+- `vera.js` — la cara (foto + dos videos en bucle), voz (speechSynthesis),
+  oído (SpeechRecognition).
+- `persona/` — la foto y los dos videos de la cara de Vera (~3 MB).
 - `simulacion.js` — la sala simulada con guion (celular, sueño, ausencia).
 - `motor-atencion.js` — MediaPipe Face Landmarker (modo cámara) + la misma
   lógica de estados/alertas para ambos modos. EMA de atención por persona.

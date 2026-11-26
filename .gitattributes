@@ -9,3 +9,7 @@ vendor/** -text
 # Los binarios, marcados como tales para que git ni intente diferenciarlos.
 *.wasm binary
 *.task binary
+
+# La cara de Vera (persona/): fotos y videos, binarios.
+*.mp4 binary
+*.jpg binary

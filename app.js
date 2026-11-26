@@ -121,19 +121,29 @@
        existiera ese formato: su copia guardada se conserva (no se le pisa lo
        que escribió) pero se queda sin las preguntas nuevas — y sin este aviso
        lo descubriría el día de la capacitación, sin saber por qué. */
-    var avisoExamen = examen.preguntas.length
-      ? 'Examen final: <strong>' + examen.preguntas.length + ' preguntas</strong>, ' +
-        'y se aprueba con ' + Math.ceil((window.Examen.notaMinima() / 100) * examen.preguntas.length) +
-        ' aciertos.'
-      : '<span style="color:var(--ambar)">⚠ Este curso no tiene preguntas de opción múltiple, ' +
+    var nExamen = examen.preguntas.length;
+    var aciertos = nExamen ? Math.ceil((window.Examen.notaMinima() / 100) * nExamen) : 0;
+    var avisoExamen = nExamen
+      ? ''
+      : '<p class="datos-aviso">⚠ Este curso no tiene preguntas de opción múltiple, ' +
         'así que no puede haber examen ni constancia de aprobación. Si es un curso de fábrica que ' +
         'usted editó, abra “Editar contenido” y oprima “Restaurar el de fábrica” para recuperar ' +
-        'las preguntas.</span>';
+        'las preguntas.</p>';
+    // Cuatro cifras en vez de un párrafo: es lo que el supervisor mira antes
+    // de sentar a alguien, y en cifras se lee de un vistazo.
+    var dato = function (valor, rotulo) {
+      return '<div class="dato"><b>' + valor + '</b><span>' + rotulo + '</span></div>';
+    };
     $('inicio-resumen').innerHTML =
-      'Contenido cargado: <strong>' + contenido.titulo + '</strong> — ' +
-      contenido.modulos.length + ' módulos, ' + preguntas + ' preguntas.<br>' +
-      'Duración estimada: <strong>~' + minutos + ' minutos</strong>, más unos 15 segundos por asistente ' +
-      'para el registro de nombres.<br>' + avisoExamen;
+      '<div class="datos-curso">' +
+        dato(contenido.modulos.length, contenido.modulos.length === 1 ? 'módulo' : 'módulos') +
+        dato('~' + minutos + ' min', 'de clase') +
+        dato(nExamen || '—', nExamen === 1 ? 'pregunta de examen' : 'preguntas de examen') +
+        dato(nExamen ? aciertos + ' de ' + nExamen : '—', 'para aprobar') +
+      '</div>' +
+      '<p class="datos-nota">El contenido trae ' + preguntas + (preguntas === 1 ? ' pregunta' : ' preguntas') +
+        '. Al tiempo se suman unos 15 segundos por asistente para el registro de nombres.</p>' +
+      avisoExamen;
   }
 
   // ── Frases de Vera ──────────────────────────────────────
@@ -447,6 +457,16 @@
     }).join('');
   }
 
+  /* Marca el punto que Vera está leyendo y lo trae a la vista. La sala tiene
+     el alto de la ventana: en un proyector de 1024 x 768, o en un módulo de
+     seis puntos, el actual puede quedar debajo del borde de la diapositiva, y
+     el asesor oiría un punto que no ve. */
+  function marcarPuntoActual(j) {
+    var lis = $('diapositiva-puntos').children;
+    for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('actual', k === j);
+    if (lis[j] && lis[j].scrollIntoView) lis[j].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   // ── Pausa (el descanso de media sesión) ─────────────────
   function esperarSiPausada() {
     if (terminada) return Promise.resolve();
@@ -529,7 +549,7 @@
       window.Motor.pausar(); // apaga la cámara y congela toda medición
       colaAlertas.length = 0;
       colaLlegadas.length = 0;
-      $('btn-pausar').textContent = '▶ Continuar';
+      $('btn-pausar').classList.add('activo'); // muestra "Continuar"
       $('barra-fase').textContent = modo === 'camara'
         ? 'En descanso — la cámara está apagada y no se está midiendo nada. El acta se conserva.'
         : 'En descanso — la capacitación está detenida. El acta se conserva.';
@@ -547,7 +567,7 @@
       }
       pausada = false;
       msPausados += Date.now() - pausaDesde;
-      $('btn-pausar').textContent = '⏸ Pausar';
+      $('btn-pausar').classList.remove('activo');
       // Si vuelve del descanso con el puesto vacío, el ticker entrará en espera
       // por su cuenta: se reinicia el contador para que no lo haga de inmediato.
       vacioDesde = 0;
@@ -665,8 +685,7 @@
           puntosCadena = puntosCadena.then(esperarSiPausada).then(function () {
             if (terminada) return;
             window.Motor.marcador('m' + i + 'p' + j);
-            var lis = $('diapositiva-puntos').children;
-            for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('actual', k === j);
+            marcarPuntoActual(j);
             // Se anota qué se alcanzó a dictar: un acta de sesión cortada no
             // puede dar a entender que se vio el curso completo.
             puntoEnCurso = { modulo: i, tituloModulo: m.titulo, indicePunto: j, texto: punto };
@@ -983,8 +1002,7 @@
         x.m.puntos.forEach(function (punto, j) {
           puntos = puntos.then(esperarSiPausada).then(function () {
             if (terminada) return;
-            var lis = $('diapositiva-puntos').children;
-            for (var k = 0; k < lis.length; k++) lis[k].classList.toggle('actual', k === j);
+            marcarPuntoActual(j);
             puntoEnCurso = { modulo: x.i, tituloModulo: x.m.titulo, indicePunto: j, texto: punto };
             return decirPunto(punto);
           });
@@ -1362,11 +1380,16 @@
       var html = personas.map(function (p, i) {
         var pct = Math.round(p.ema * 100);
         var etiquetas = { atento: 'atenta/o', distraido: 'distraída/o', 'ojos-cerrados': 'ojos cerrados', hablando: 'conversando', ausente: 'ausente' };
+        // El nombre lo escribe la gente en la sala: se escapa como todo lo demás.
+        var inicial = p.nombre ? escaparHtml(p.nombre.trim().charAt(0).toUpperCase()) : '?';
         return '<div class="chip-persona ' + p.estado + '" data-idx="' + i + '" title="' + etiquetas[p.estado] + '">' +
-          '<span class="punto"></span>' +
-          '<span class="nombre">' + (p.nombre || 'sin registrar') + '</span>' +
-          '<span class="barra"><i style="width:' + pct + '%"></i></span>' +
-          (p.llamados ? '<span class="llamados">⚠ ' + p.llamados + '</span>' : '') +
+          '<span class="inicial">' + inicial + '</span>' +
+          '<span class="chip-cuerpo">' +
+            '<span class="nombre">' + escaparHtml(p.nombre || 'sin registrar') + '</span>' +
+            '<span class="barra"><i style="width:' + pct + '%"></i></span>' +
+          '</span>' +
+          '<span class="estado-chip">' + etiquetas[p.estado] + '</span>' +
+          (p.llamados ? '<span class="llamados" title="llamados de atención">⚠ ' + p.llamados + '</span>' : '') +
           '</div>';
       }).join('');
       // Repintar solo cuando algo cambió: reconstruir los nodos dos veces por
@@ -2288,7 +2311,7 @@
     $('btn-tablero').addEventListener('click', function () {
       var sala = document.querySelector('.sala');
       var oculto = sala.classList.toggle('sin-tablero');
-      $('btn-tablero').textContent = oculto ? '👁 Mostrar tablero' : '🙈 Ocultar tablero';
+      $('btn-tablero').classList.toggle('activo', oculto); // "Mostrar tablero"
     });
 
     // Cortar la sesión y entregar el acta con lo acumulado: en una empresa

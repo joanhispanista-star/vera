@@ -9,25 +9,32 @@
 <body>
 
 <header class="cabecera">
-  <div class="marca">VERA <span>capacitadora virtual</span></div>
-  <div class="cabecera-nota">El video se procesa en este computador. No se graba ni se envía a internet.</div>
+  <div class="marca"><i aria-hidden="true"></i>VERA <span>capacitadora virtual</span></div>
+  <div class="cabecera-nota"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>El video se procesa en este computador. No se graba ni se envía a internet.</div>
 </header>
 
 <main>
 
   <!-- ══════════ PANTALLA: INICIO ══════════ -->
   <section id="p-inicio" class="pantalla activa">
-    <div class="tarjeta tarjeta-centrada">
-      <h1>Capacitación sin capacitador</h1>
+    <div class="inicio">
+      <!-- La cara de Vera la arma vera.js (foto + video de escuchar). La
+           etiqueta IA va en el HTML para que nunca se pierda: Vera parece una
+           persona y no puede pasar por una. -->
+      <figure class="vera-cuadro vera-retrato">
+        <div class="vera-medios" data-vera-retrato></div>
+        <span class="vera-ia"><b>IA</b> Asistente virtual</span>
+        <div class="vera-globo">Hola, soy Vera. Soy una inteligencia artificial y hoy te voy a capacitar.</div>
+        <figcaption class="vera-pie"><div><strong>Vera</strong><span>Capacitadora virtual</span></div></figcaption>
+      </figure>
+
+      <div class="inicio-cuerpo">
+      <h1>Capacitación <em>sin capacitador</em></h1>
       <p class="intro">
         Vera dicta la inducción, ve la sala por la cámara, llama a cada persona por su
         nombre, hace preguntas y al final entrega un acta de atención para el supervisor.
         Nadie tiene que estar presente dictando la misma inducción una y otra vez.
       </p>
-      <div class="selector-curso">
-        <label for="sel-curso">Curso de hoy:</label>
-        <select id="sel-curso"></select>
-      </div>
       <div id="aviso-rescate" class="aviso-rescate oculto">
         <span id="rescate-texto"></span>
         <span class="registro-acciones">
@@ -42,21 +49,29 @@
           <button id="btn-ver-recertificar" class="btn btn-mini">Ver quiénes</button>
         </span>
       </div>
-      <div id="inicio-resumen" class="resumen-contenido"></div>
-      <div class="botonera">
-        <button id="btn-comenzar" class="btn btn-primario">Iniciar capacitación</button>
-        <button id="btn-editar-contenido" class="btn btn-secundario">Editar contenido</button>
-        <button id="btn-historial" class="btn btn-secundario">Historial y constancias</button>
-        <a class="btn btn-secundario" href="repaso.html" target="_blank" rel="noopener">Repaso para el celular</a>
-        <a class="btn btn-secundario" href="extraer.html" target="_blank" rel="noopener" title="Convierte lo que sabe alguien del equipo en un curso que Vera puede dictar">Crear un curso nuevo</a>
-        <a class="btn btn-secundario" href="cuestionario.html" target="_blank" rel="noopener" title="Las preguntas para armar el curso de cobranza de nanocréditos de app">Curso de nanocréditos</a>
-        <a class="btn btn-secundario" href="cuestionario-asesor.html" target="_blank" rel="noopener" title="El cuestionario que se le manda a un asesor con experiencia: 12 preguntas de su dia a dia">Preguntarle a un asesor</a>
+      <div class="curso-hoy">
+        <label for="sel-curso">Curso de hoy</label>
+        <select id="sel-curso"></select>
+        <div id="inicio-resumen" class="resumen-contenido"></div>
+      </div>
+      <div class="botonera botonera-inicio">
+        <button id="btn-comenzar" class="btn btn-primario btn-grande"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>Iniciar capacitación</button>
+      </div>
+      <div class="acciones">
+        <button id="btn-editar-contenido" class="accion"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar contenido</button>
+        <button id="btn-historial" class="accion"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Historial y constancias</button>
+        <a class="accion" href="repaso.html" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Repaso para el celular</a>
+        <a class="accion" href="extraer.html" target="_blank" rel="noopener" title="Convierte lo que sabe alguien del equipo en un curso que Vera puede dictar"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Crear un curso nuevo</a>
+        <a class="accion" href="cuestionario.html" target="_blank" rel="noopener" title="Las preguntas para armar el curso de cobranza de nanocréditos de app"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Curso de nanocréditos</a>
+        <a class="accion" href="cuestionario-asesor.html" target="_blank" rel="noopener" title="El cuestionario que se le manda a un asesor con experiencia: 12 preguntas de su dia a dia"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Preguntarle a un asesor</a>
       </div>
       <p class="letra-menuda">
-        Vera es una inteligencia artificial y así se presenta ante el grupo.
-        La atención se estima por la postura de la cabeza y los ojos frente a la cámara:
-        es un indicio para el supervisor, no una medición absoluta.
+        Vera es una inteligencia artificial y así se presenta ante el grupo: su cara
+        es una persona inventada, no existe. La atención se estima por la postura de
+        la cabeza y los ojos frente a la cámara: es un indicio para el supervisor,
+        no una medición absoluta.
       </p>
+      </div>
     </div>
   </section>
 
@@ -78,11 +93,11 @@
         si hay un grupo en la sala, léeselo o proyéctalo antes de empezar.</p>
       </div>
       <div class="prueba-mic">
-        <button id="btn-probar-voz" class="btn btn-secundario">🔊 Probar la voz de Vera</button>
+        <button id="btn-probar-voz" class="btn btn-secundario"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>Probar la voz de Vera</button>
         <span id="resultado-voz" class="resultado-mic"></span>
       </div>
       <div class="prueba-mic">
-        <button id="btn-probar-mic" class="btn btn-secundario">🎤 Probar el micrófono</button>
+        <button id="btn-probar-mic" class="btn btn-secundario"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Probar el micrófono</button>
         <span id="resultado-mic" class="resultado-mic"></span>
       </div>
       <div class="prueba-mic">
@@ -126,17 +141,32 @@
   <section id="p-sala" class="pantalla">
     <div class="sala">
 
-      <!-- Columna izquierda: Vera -->
+      <!-- Izquierda: Vera en grande, como en una videollamada. Frente a un
+           asesor solo, una cara a tamaño real sostiene la atención mejor que
+           un recuadro chico al lado de la diapositiva. -->
       <div class="col-vera">
-        <div id="vera-contenedor" class="vera-marco"></div>
-        <div class="vera-placa">Vera · inteligencia artificial</div>
-        <div id="vera-estado" class="vera-estado"></div>
-        <div id="vera-subtitulo" class="vera-subtitulo"></div>
-        <button id="btn-saltar" class="btn btn-mini" title="Salta lo que Vera está diciendo">Saltar ⏭</button>
-        <button id="btn-tablero" class="btn btn-mini" title="Oculta el video y la atención de cada persona: úsalo si proyectas la pantalla en la sala">🙈 Ocultar tablero</button>
+        <figure class="vera-cuadro">
+          <div id="vera-contenedor" class="vera-medios"></div>
+          <span class="vera-ia"><b>IA</b> Asistente virtual</span>
+          <div id="vera-estado" class="vera-estado"></div>
+          <div id="vera-subtitulo" class="vera-subtitulo"></div>
+          <figcaption class="vera-pie">
+            <div><strong>Vera</strong><span>Capacitadora virtual · inteligencia artificial</span></div>
+            <div class="ondas" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          </figcaption>
+        </figure>
+        <div class="controles-vera">
+          <button id="btn-duda" class="btn btn-primario oculto" title="Vera repite el punto y queda anotado como duda del grupo, sin nombres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>No entendí — repetir</button>
+          <!-- Los dos rótulos viven en el HTML y la app solo cambia una clase:
+               así el ícono no se pierde al alternar. -->
+          <button id="btn-pausar" class="btn btn-secundario oculto" title="Detiene la capacitación sin cerrar el acta"><span class="si-no"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>Pausar</span><span class="si-si"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>Continuar</span></button>
+          <button id="btn-saltar" class="btn btn-secundario" title="Salta lo que Vera está diciendo"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5l9 7-9 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg>Saltar</button>
+          <button id="btn-tablero" class="btn btn-mini" title="Oculta el video y la atención de cada persona: úsalo si proyectas la pantalla en la sala"><span class="si-no"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 22 12a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/></svg>Ocultar tablero</span><span class="si-si"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Mostrar tablero</span></button>
+          <button id="btn-terminar" class="btn btn-mini" title="Corta la sesión y genera el acta con lo acumulado"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Terminar y generar acta</button>
+        </div>
       </div>
 
-      <!-- Columna central: contenido -->
+      <!-- Derecha: lo que se está enseñando y la sala -->
       <div class="col-contenido">
         <div id="barra-fase" class="barra-fase"></div>
         <div class="diapositiva">
@@ -163,7 +193,7 @@
             <button id="btn-enviar-respuesta" class="btn btn-primario">Responder</button>
           </div>
           <div class="fila-entrada">
-            <button id="btn-responder-voz" class="btn btn-secundario">🎤 Responder por voz</button>
+            <button id="btn-responder-voz" class="btn btn-secundario"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Responder por voz</button>
             <button id="btn-sin-respuesta" class="btn btn-mini">No hubo respuesta</button>
           </div>
         </div>
@@ -196,20 +226,20 @@
         <div class="botonera-sala">
           <button id="btn-empezar-registro" class="btn btn-primario oculto">Ya estamos todos — empezar registro</button>
           <button id="btn-cambiar-a-demo" class="btn btn-secundario oculto">Continuar en modo demostración</button>
-          <button id="btn-duda" class="btn btn-primario oculto" title="Vera repite el punto y queda anotado como duda del grupo, sin nombres">🙋 No entendí — repetir</button>
-          <button id="btn-pausar" class="btn btn-secundario oculto" title="Detiene la capacitación sin cerrar el acta">⏸ Pausar</button>
-          <button id="btn-terminar" class="btn btn-mini" title="Corta la sesión y genera el acta con lo acumulado">Terminar y generar acta</button>
         </div>
-      </div>
 
-      <!-- Columna derecha: la sala vista por Vera -->
-      <div class="col-video">
-        <div class="marco-video">
-          <video id="video-camara" playsinline muted class="oculto"></video>
-          <canvas id="lienzo-overlay" class="oculto"></canvas>
-          <canvas id="lienzo-sim" width="640" height="360" class="oculto"></canvas>
+        <!-- La sala vista por Vera. "Ocultar tablero" la esconde entera. -->
+        <div class="col-video">
+          <div class="panel-titulo">La sala <span>lo que ve Vera · se procesa en este computador</span></div>
+          <div class="col-video-cuerpo">
+            <div class="marco-video">
+              <video id="video-camara" playsinline muted class="oculto"></video>
+              <canvas id="lienzo-overlay" class="oculto"></canvas>
+              <canvas id="lienzo-sim" width="640" height="360" class="oculto"></canvas>
+            </div>
+            <div id="lista-personas" class="lista-personas"></div>
+          </div>
         </div>
-        <div id="lista-personas" class="lista-personas"></div>
       </div>
 
     </div>

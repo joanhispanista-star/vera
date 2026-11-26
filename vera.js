@@ -16,86 +16,136 @@
 
   var hablando = false;
   var cancelado = false;
-  var temporizadorBoca = null;
-  var temporizadorParpadeo = null;
   var guardaResume = null;
 
-  // ── El avatar ───────────────────────────────────────────
-  // Dibujo plano y amable a propósito: una cara "casi humana" mal animada
-  // genera rechazo; un personaje claro y bien animado genera confianza.
-  // El pin "IA" en el saco es deliberado: Vera nunca finge ser una persona.
-  var SVG = [
-    '<svg viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg" aria-label="Vera, capacitadora virtual">',
-    '  <circle cx="100" cy="95" r="82" fill="#22314a"/>',
-    '  <!-- pelo de fondo -->',
-    '  <path d="M42 92 Q38 28 100 26 Q162 28 158 92 L158 132 Q150 112 142 108 L58 108 Q50 112 42 132 Z" fill="#3d2b20"/>',
-    '  <!-- cuello y saco -->',
-    '  <rect x="88" y="140" width="24" height="22" fill="#e8b48c"/>',
-    '  <path d="M40 210 Q40 168 76 158 L100 170 L124 158 Q160 168 160 210 Z" fill="#155e63"/>',
-    '  <path d="M92 160 L100 170 L108 160 L100 156 Z" fill="#eef4f8"/>',
-    '  <!-- pin IA: Vera no finge ser humana -->',
-    '  <circle cx="130" cy="182" r="10" fill="#0c3d40"/>',
-    '  <text x="130" y="186" font-size="9" font-weight="bold" fill="#35c4c8" text-anchor="middle" font-family="Segoe UI, sans-serif">IA</text>',
-    '  <!-- cara -->',
-    '  <ellipse cx="100" cy="98" rx="46" ry="52" fill="#f0c39b"/>',
-    '  <!-- fleco -->',
-    '  <path d="M54 92 Q52 40 100 38 Q148 40 146 92 Q140 62 118 58 Q124 74 116 72 Q96 60 74 70 Q60 76 54 92 Z" fill="#4a3427"/>',
-    '  <!-- cejas -->',
-    '  <path d="M66 82 Q76 76 88 80" stroke="#3d2b20" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-    '  <path d="M112 80 Q124 76 134 82" stroke="#3d2b20" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-    '  <!-- ojos -->',
-    '  <g id="vera-ojo-izq">',
-    '    <ellipse cx="78" cy="94" rx="9" ry="7" fill="#fff"/>',
-    '    <circle id="vera-iris-izq" cx="78" cy="94" r="4.2" fill="#4a3427"/>',
-    '    <rect id="vera-parpado-izq" x="68" y="83" width="20" height="0" rx="4" fill="#f0c39b"/>',
-    '  </g>',
-    '  <g id="vera-ojo-der">',
-    '    <ellipse cx="122" cy="94" rx="9" ry="7" fill="#fff"/>',
-    '    <circle id="vera-iris-der" cx="122" cy="94" r="4.2" fill="#4a3427"/>',
-    '    <rect id="vera-parpado-der" x="112" y="83" width="20" height="0" rx="4" fill="#f0c39b"/>',
-    '  </g>',
-    '  <!-- nariz -->',
-    '  <path d="M100 100 Q97 110 100 113 Q103 112 103 110" stroke="#d9a677" stroke-width="2" fill="none" stroke-linecap="round"/>',
-    '  <!-- boca: sonrisa en reposo, elipse animada al hablar -->',
-    '  <path id="vera-sonrisa" d="M84 128 Q100 138 116 128" stroke="#b3574f" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-    '  <ellipse id="vera-boca-abierta" cx="100" cy="130" rx="11" ry="2" fill="#8c3a34" style="display:none"/>',
-    '  <!-- aretes -->',
-    '  <circle cx="54" cy="106" r="3" fill="#35c4c8"/>',
-    '  <circle cx="146" cy="106" r="3" fill="#35c4c8"/>',
-    '</svg>'
-  ].join('\n');
+  // ── La cara ─────────────────────────────────────────────
+  /* Vera tiene cara humana desde el 26-nov-2026, a pedido de Joan: el dibujo
+     no le daba al asesor la sensación de que alguien le estaba enseñando.
+     Es una persona INVENTADA por IA (no existe y no se parece a nadie a
+     propósito), animada con dos videos cortos generados de la misma foto:
+     uno escuchando y otro hablando. La app pasa de uno a otro cuando la voz
+     empieza y termina.
 
-  function el(id) { return contenedor ? contenedor.querySelector('#' + id) : null; }
+     Lo que NO se hace, a propósito: mover con código la boca de una foto. Esa
+     es exactamente la cara "casi humana mal animada" que genera rechazo, y la
+     razón por la que antes Vera era un dibujo. Los labios tampoco siguen las
+     palabras exactas: eso exige un servicio pago por sesión, y la regla 1 del
+     proyecto lo prohíbe. Las palabras las llevan la voz y los subtítulos.
 
-  // ── Parpadeo y boca ─────────────────────────────────────
-  function parpadear() {
-    var pi = el('vera-parpado-izq');
-    var pd = el('vera-parpado-der');
-    if (!pi || !pd) return;
-    pi.setAttribute('height', '15');
-    pd.setAttribute('height', '15');
-    setTimeout(function () {
-      pi.setAttribute('height', '0');
-      pd.setAttribute('height', '0');
-    }, 140);
+     Como ahora parece una persona, la etiqueta "IA" va SIEMPRE encima del
+     video, y va en el HTML, no pintada en la foto, para que nunca se pierda
+     al recortar: Vera nunca finge ser humana.
+
+     Los tres archivos viven en persona/ y pesan unos 3 MB. Nada sale a
+     internet y la USB sigue funcionando sin conexión. */
+  var RETRATO = 'persona/vera.jpg';
+  var CLIP_ESCUCHA = 'persona/vera-escucha.mp4';
+  var CLIP_HABLA = 'persona/vera-habla.mp4';
+  /* El clip de hablar es un bucle de 3,8 s cortado donde dos cuadros casi
+     coinciden, para que la repetición no salte. Se entra a él por el cuadro
+     más parecido a la cara en reposo (a 2,83 s, medido cuadro por cuadro):
+     así el paso de escuchar a hablar no da un brinco. */
+  var ENTRADA_HABLA = 2.83;
+  /* Entre una frase y la siguiente, o entre dos decir() seguidos, la voz
+     calla unos milisegundos. Si la cara volviera a "escuchar" en cada pausa,
+     Vera parpadearía entre los dos videos todo el tiempo. */
+  var ESPERA_REPOSO = 450;
+  var FUNDIDO = 300; // lo que dura el fundido del CSS (.vera-clip)
+
+  // Quien pidió al sistema menos movimiento ve la foto quieta.
+  var sinMovimiento = !!(window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  var cuadro = null;        // el recuadro que se ilumina cuando Vera habla
+  var clipEscucha = null;
+  var clipHabla = null;
+  var caraActual = null;    // 'escucha' | 'habla'
+  var temporizadorReposo = null;
+  var temporizadorPausa = null;
+  var cuadroVisible = true;
+
+  function reproducir(video, desde) {
+    if (!video || !cuadroVisible) return;
+    try { if (typeof desde === 'number') video.currentTime = desde; } catch (e) {}
+    var promesa = video.play();
+    // Si el navegador no deja reproducir, queda la foto: no es un error que
+    // haya que mostrarle a nadie.
+    if (promesa && promesa.catch) promesa.catch(function () {});
   }
 
-  function animarBoca(activa) {
-    var sonrisa = el('vera-sonrisa');
-    var boca = el('vera-boca-abierta');
-    if (!sonrisa || !boca) return;
-    clearInterval(temporizadorBoca);
-    if (activa) {
-      sonrisa.style.display = 'none';
-      boca.style.display = '';
-      temporizadorBoca = setInterval(function () {
-        boca.setAttribute('ry', String(1.5 + Math.random() * 6));
-        boca.setAttribute('rx', String(8 + Math.random() * 5));
-      }, 90);
-    } else {
-      sonrisa.style.display = '';
-      boca.style.display = 'none';
+  /* Pone la foto y, encima, los dos videos. La foto se ve mientras cargan,
+     si fallan o si el equipo pidió menos movimiento: Vera nunca queda como un
+     recuadro negro. */
+  function armarCara(destino, soloEscucha) {
+    var html = '<img class="vera-foto" src="' + RETRATO + '" alt="Vera, la capacitadora virtual. ' +
+      'Es una inteligencia artificial, no una persona.">';
+    if (!sinMovimiento) {
+      html += '<video class="vera-clip escucha visible" src="' + CLIP_ESCUCHA + '" poster="' + RETRATO +
+        '" muted loop playsinline preload="auto" aria-hidden="true"></video>';
+      if (!soloEscucha) {
+        html += '<video class="vera-clip habla" src="' + CLIP_HABLA + '" poster="' + RETRATO +
+          '" muted loop playsinline preload="auto" aria-hidden="true"></video>';
+      }
     }
+    destino.innerHTML = html;
+    var videos = destino.querySelectorAll('video');
+    for (var i = 0; i < videos.length; i++) {
+      // El atributo muted solo no basta: la regla de reproducción automática
+      // del navegador mira la propiedad.
+      videos[i].muted = true;
+      videos[i].addEventListener('error', function (ev) {
+        // Sin video (archivo borrado de la USB, códec raro): queda la foto.
+        var v = ev.target;
+        if (v.parentNode) v.parentNode.removeChild(v);
+        if (v === clipEscucha) clipEscucha = null;
+        if (v === clipHabla) clipHabla = null;
+      });
+    }
+    return {
+      escucha: destino.querySelector('.vera-clip.escucha'),
+      habla: destino.querySelector('.vera-clip.habla')
+    };
+  }
+
+  /* Un video que nadie ve igual se decodifica y gasta procesador. Se pausa
+     cuando su pantalla se oculta y se reanuda al volver. */
+  function vigilarVisibilidad(elemento, alVerse, alOcultarse) {
+    if (!window.IntersectionObserver) return;
+    new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) {
+        if (e.isIntersecting) alVerse(); else alOcultarse();
+      });
+    }).observe(elemento);
+  }
+
+  function ponerCara(estado) {
+    if (estado === caraActual) return;
+    caraActual = estado;
+    if (cuadro) cuadro.classList.toggle('hablando', estado === 'habla');
+    clearTimeout(temporizadorPausa);
+    if (estado === 'habla') {
+      if (!clipHabla) return;
+      reproducir(clipHabla, ENTRADA_HABLA);
+      clipHabla.classList.add('visible');
+      // El de escuchar queda tapado: se pausa cuando termina el fundido.
+      temporizadorPausa = setTimeout(function () {
+        if (clipEscucha && caraActual === 'habla') clipEscucha.pause();
+      }, FUNDIDO + 50);
+    } else {
+      // Vuelve a escuchar desde el principio, que es la cara en reposo.
+      reproducir(clipEscucha, 0);
+      if (!clipHabla) return;
+      clipHabla.classList.remove('visible');
+      temporizadorPausa = setTimeout(function () {
+        if (clipHabla && caraActual !== 'habla') clipHabla.pause();
+      }, FUNDIDO + 50);
+    }
+  }
+
+  function moverCara(hablandoAhora) {
+    clearTimeout(temporizadorReposo);
+    if (hablandoAhora) ponerCara('habla');
+    else temporizadorReposo = setTimeout(function () { ponerCara('escucha'); }, ESPERA_REPOSO);
   }
 
   // ── La voz ──────────────────────────────────────────────
@@ -128,9 +178,10 @@
   function decirFrase(frase) {
     return new Promise(function (resolver) {
       if (subtituloEl) subtituloEl.textContent = frase;
-      // Se reactiva por frase: un llamado de atención intercalado apaga la boca
-      // al terminar, y sin esto Vera seguiría hablando con la boca quieta.
-      animarBoca(true);
+      // Se reactiva por frase: un llamado de atención intercalado devuelve la
+      // cara a "escuchar" al terminar, y sin esto Vera seguiría hablando
+      // con la cara quieta.
+      moverCara(true);
       if (MODO_RAPIDO || !window.speechSynthesis) {
         var listoRapido = false;
         var terminarRapido = function () {
@@ -190,12 +241,26 @@
       contenedor = contenedorEl;
       subtituloEl = subEl;
       estadoEl = estEl;
-      contenedor.innerHTML = SVG;
-
-      clearInterval(temporizadorParpadeo);
-      temporizadorParpadeo = setInterval(function () {
-        if (Math.random() < 0.5) parpadear();
-      }, 2600);
+      cuadro = (contenedor.closest && contenedor.closest('.vera-cuadro')) || contenedor;
+      // Cada sesión nueva vuelve a llamar a iniciar(): los videos se arman una
+      // sola vez y después solo se devuelve la cara a "escuchar".
+      if (!contenedor.querySelector('.vera-foto')) {
+        var clips = armarCara(contenedor, false);
+        clipEscucha = clips.escucha;
+        clipHabla = clips.habla;
+        vigilarVisibilidad(cuadro, function () {
+          cuadroVisible = true;
+          reproducir(caraActual === 'habla' ? clipHabla : clipEscucha);
+        }, function () {
+          cuadroVisible = false;
+          if (clipEscucha) clipEscucha.pause();
+          if (clipHabla) clipHabla.pause();
+        });
+      }
+      caraActual = null;
+      ponerCara('escucha');
+      // El subtítulo de la sesión anterior no puede quedar en la nueva.
+      if (subtituloEl) subtituloEl.textContent = '';
 
       // Las voces cargan asíncronas: pedirlas ya dispara 'voiceschanged'.
       if (window.speechSynthesis) speechSynthesis.getVoices();
@@ -219,8 +284,10 @@
       var frases = partirEnFrases(texto);
       cancelado = false;
       hablando = true;
-      if (estadoEl) estadoEl.textContent = '● hablando';
-      animarBoca(true);
+      // Que está hablando ya lo dicen la cara, el borde iluminado y las ondas;
+      // el letrero de estado queda para cuando Vera escucha.
+      if (estadoEl) estadoEl.textContent = '';
+      moverCara(true);
 
       var cadena = Promise.resolve();
       frases.forEach(function (frase, idx) {
@@ -237,7 +304,7 @@
 
       return cadena.then(function () {
         hablando = false;
-        animarBoca(false);
+        moverCara(false);
         if (estadoEl) estadoEl.textContent = '';
       });
     },
@@ -257,7 +324,7 @@
         t();
       }
       hablando = false;
-      animarBoca(false);
+      moverCara(false);
       if (estadoEl) estadoEl.textContent = '';
     },
 
@@ -379,17 +446,23 @@
       }
     },
 
-    /* Mueve la mirada de Vera hacia una posición horizontal de la sala.
-       x va de 0 (izquierda de la pantalla) a 1 (derecha); null = al frente. */
-    mirar: function (x) {
-      var desplazamiento = 0;
-      if (typeof x === 'number') {
-        desplazamiento = Math.max(-1, Math.min(1, (x - 0.5) * 2)) * 3;
-      }
-      var ii = el('vera-iris-izq');
-      var id = el('vera-iris-der');
-      if (ii) ii.setAttribute('cx', String(78 + desplazamiento));
-      if (id) id.setAttribute('cx', String(122 + desplazamiento));
+    /* Antes movía los ojos del dibujo hacia la persona a la que Vera le
+       hablaba (x de 0 a 1; null = al frente). Con una cara de video no hay
+       ojos que mover sin deformarla, y una mirada falsa es peor que ninguna:
+       quien recibe el llamado ya lo sabe porque Vera dice su nombre. Se deja
+       la función para que la app no cambie. */
+    mirar: function () {},
+
+    /* La cara de Vera en otra pantalla (la de inicio): foto y video de
+       escuchar en bucle, sin voz. */
+    retrato: function (destino) {
+      if (!destino || destino.querySelector('.vera-foto')) return;
+      var clip = armarCara(destino, true).escucha;
+      if (!clip) return;
+      vigilarVisibilidad(destino, function () {
+        var p = clip.play();
+        if (p && p.catch) p.catch(function () {});
+      }, function () { clip.pause(); });
     },
 
     get modoRapido() { return MODO_RAPIDO; },
@@ -423,4 +496,9 @@
 
     velocidad: 1
   };
+
+  // La cara de la pantalla de inicio se arma sola: vera.js se carga al final
+  // del <body>, así que ese HTML ya existe.
+  var retratos = document.querySelectorAll('[data-vera-retrato]');
+  for (var r = 0; r < retratos.length; r++) window.Vera.retrato(retratos[r]);
 })();
