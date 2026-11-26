@@ -184,12 +184,12 @@
           ? 'Vamos a hacer tu capacitación completa, y al final te voy a hacer un examen: ' +
             'si lo pasas, queda tu constancia. '
           : 'Vamos a hacer tu capacitación completa y al final queda tu constancia de asistencia. ') +
-        'Ponte cómodo, guarda el celular, y arrancamos.';
+        'Acomódate, guarda el celular, y arrancamos.';
     }
     if (window.Motor.presentes().length === 1) {
       return saludoPorHora() + comun + 'y sí, te estoy viendo por la cámara. ' +
         'Hoy vamos a hacer tu inducción completa, voy a estar pendiente de ti, ' +
-        'y al final queda tu constancia. Así que ponte cómodo, guarda el celular, ' +
+        'y al final queda tu constancia. Así que acomódate, guarda el celular, ' +
         'y empecemos por conocernos.';
     }
     return saludoPorHora() + comun + 'y sí, los estoy viendo por la cámara. ' +
@@ -242,6 +242,7 @@
     grupoSesion = $('txt-grupo').value.trim();
     ir('p-sala');
     window.Vera.iniciar($('vera-contenedor'), $('vera-subtitulo'), $('vera-estado'));
+    caraEnPausa(false); // una sesión anterior pudo terminar estando en pausa
     $('barra-fase').textContent = 'Preparando la sala…';
 
     var arranque;
@@ -275,12 +276,19 @@
         if (fase === 'modulo' || fase === 'pregunta') colaLlegadas.push(p);
       };
       arrancarChips();
+      // Un asesor solo en su puesto no "registra" a nadie ni espera a que
+      // "estén todos": el botón y la barra le hablan a él.
+      $('btn-empezar-registro').textContent = autoestudio
+        ? 'Empezar ahora'
+        : 'Ya estamos todos — empezar registro';
       $('btn-empezar-registro').classList.remove('oculto');
       window.Vera.decir(textoSaludo()).then(function () {
         if (fase === 'deteccion') {
-          $('barra-fase').textContent = modo === 'camara'
-            ? 'Cuando estén todos frente a la cámara, oprima el botón.'
-            : 'Oprima el botón para empezar el registro.';
+          $('barra-fase').textContent = autoestudio
+            ? 'Cuando quieras, oprime «Empezar ahora».'
+            : (modo === 'camara'
+              ? 'Cuando estén todos frente a la cámara, oprima el botón.'
+              : 'Oprima el botón para empezar el registro.');
         }
       });
     });
@@ -539,6 +547,11 @@
     return;
   }
 
+  function caraEnPausa(si) {
+    var cuadro = document.querySelector('.col-vera .vera-cuadro');
+    if (cuadro) cuadro.classList.toggle('en-pausa', !!si);
+  }
+
   function alternarPausa() {
     if (terminada) return;
     if (!pausada) {
@@ -550,6 +563,8 @@
       colaAlertas.length = 0;
       colaLlegadas.length = 0;
       $('btn-pausar').classList.add('activo'); // muestra "Continuar"
+      // Quien vuelve del café ve de lejos que está detenida, sin leer la barra.
+      caraEnPausa(true);
       $('barra-fase').textContent = modo === 'camara'
         ? 'En descanso — la cámara está apagada y no se está midiendo nada. El acta se conserva.'
         : 'En descanso — la capacitación está detenida. El acta se conserva.';
@@ -568,6 +583,7 @@
       pausada = false;
       msPausados += Date.now() - pausaDesde;
       $('btn-pausar').classList.remove('activo');
+      caraEnPausa(false);
       // Si vuelve del descanso con el puesto vacío, el ticker entrará en espera
       // por su cuenta: se reinicia el contador para que no lo haga de inmediato.
       vacioDesde = 0;
@@ -825,7 +841,7 @@
     if (clave === 'antes') return 'Interesante. Eso siempre sirve más de lo que uno cree.';
     if (clave === 'experiencia') {
       return /no|nunca|ning/.test(t.slice(0, 12))
-        ? 'Tranquilo, mucha gente empieza aquí sin eso y le va muy bien. Para eso estamos hoy.'
+        ? 'No te preocupes: mucha gente empieza aquí sin eso y le va muy bien. Para eso estamos hoy.'
         : 'Perfecto, entonces ya tienes camino adelantado: esto se parece bastante.';
     }
     if (clave === 'telefono') {
@@ -900,7 +916,7 @@
       return window.Vera.decir(
         quien.nombre + ', ya hiciste los ' + window.Examen.maxIntentos +
         ' intentos de hoy. Esto queda en el acta para que lo revises con tu supervisor ' +
-        'y lo retomamos otro día. No es un castigo: es que todavía no estás listo para el teléfono.'
+        'y lo retomamos otro día. No es un castigo: es que todavía te falta un poco para el teléfono.'
       );
     }
     var armado = window.Examen.armar(contenido);
@@ -1037,11 +1053,11 @@
         ' y necesitabas ' + res.minimoAciertos +
         '. Intento ' + intentoExamen + ' de ' + window.Examen.maxIntentos + '.' +
         (res.modulosARepasar.length
-          ? ' Vera te vuelve a explicar: ' + res.modulosARepasar.join(', ') + '.'
+          ? ' Vera te vuelve a explicar ' + listaModulos(res.modulosARepasar) + '.'
           : '');
-      $('btn-reintentar').textContent = res.modulosARepasar.length
+      $('btn-reintentar').textContent = res.modulosARepasar.length > 1
         ? 'Repasar esos módulos y volver a intentar'
-        : 'Volver a intentar';
+        : (res.modulosARepasar.length === 1 ? 'Repasar ese módulo y volver a intentar' : 'Volver a intentar');
       $('zona-reintento').classList.remove('oculto');
       $('btn-reintentar').onclick = function () { cerrar(true); };
       $('btn-no-reintentar').onclick = function () {
@@ -1117,6 +1133,27 @@
   /* Muestra las opciones y espera el clic. Devuelve el índice elegido, o -1 si
      la sesión se cortó. Sin micrófono: en un piso de cobranzas el micrófono
      abierto captaría las llamadas reales de los asesores de al lado. */
+  // La pregunta escrita y, debajo, qué hacer con ella.
+  function encabezadoPregunta(pregunta, instruccion) {
+    return (pregunta ? '<b class="pregunta-texto">' + escaparHtml(pregunta) + '</b>' : '') +
+      '<span class="pregunta-instruccion">' + escaparHtml(instruccion) + '</span>';
+  }
+
+  // "1 o 2", "1, 2 o 3"... (solo hasta 9: las teclas de un dígito)
+  function teclasOpciones(n) {
+    var nums = [];
+    for (var i = 1; i <= Math.min(n, 9); i++) nums.push(String(i));
+    return nums.length < 2 ? nums.join('') : nums.slice(0, -1).join(', ') + ' o ' + nums[nums.length - 1];
+  }
+
+  /* «A», «B» y «C». Las comillas no son adorno: los títulos de los módulos
+     llevan dos puntos ("La llamada: el método de la casa"), y unidos solo con
+     comas no se sabía dónde terminaba uno y empezaba el otro. */
+  function listaModulos(nombres) {
+    var q = nombres.map(function (n) { return '«' + n + '»'; });
+    return q.length < 2 ? q.join('') : q.slice(0, -1).join(', ') + ' y ' + q[q.length - 1];
+  }
+
   function pedirOpcion(persona, q) {
     return new Promise(function (resolver) {
       var resuelto = false;
@@ -1128,9 +1165,16 @@
         resolver(idx);
       };
       resolverOpcion = entregar;
-      $('opciones-pregunta').textContent = persona.nombre + ', elige una respuesta:';
+      /* La pregunta va escrita encima de las opciones: antes solo quedaba en
+         el subtítulo, sobre la cara de Vera, y el asesor elegía mirando a un
+         lado y leyendo al otro. Las teclas 1, 2, 3… eligen sin el mouse. */
+      $('opciones-pregunta').innerHTML = encabezadoPregunta(q.texto,
+        'Elige una respuesta, ' + persona.nombre + '. También con las teclas ' +
+        teclasOpciones(q.opciones.length) + '.');
       $('opciones-lista').innerHTML = q.opciones.map(function (o, i) {
-        return '<button class="opcion" data-op="' + i + '">' + escaparHtml(o.texto) + '</button>';
+        return '<button class="opcion" data-op="' + i + '">' +
+          (i < 9 ? '<span class="opcion-tecla" aria-hidden="true">' + (i + 1) + '</span>' : '') +
+          '<span>' + escaparHtml(o.texto) + '</span></button>';
       }).join('');
       $('zona-opciones').classList.remove('oculto');
     });
@@ -1190,7 +1234,7 @@
     return acierta ? 'correcta' : 'incorrecta';
   }
 
-  function pedirRespuestaEnVivo(p) {
+  function pedirRespuestaEnVivo(p, q) {
     return new Promise(function (resolver) {
       var resuelto = false;
       var entregar = function (texto) {
@@ -1201,9 +1245,13 @@
         resolver(texto);
       };
       resolverRespuesta = entregar;
-      $('respuesta-para').textContent = autoestudio
-        ? 'Responde con el teclado, ' + p.nombre + ' — o toca el micrófono si prefieres hablar.'
-        : 'Responde ' + p.nombre + ' — por voz o con el teclado.';
+      // Solo se ofrece el micrófono si su botón existe: sin reconocimiento de
+      // voz (Firefox, ?rapido=1) "toca el micrófono" mandaba a buscar un
+      // botón que no está.
+      var conMicro = !$('btn-responder-voz').classList.contains('oculto');
+      $('respuesta-para').innerHTML = encabezadoPregunta(q && q.texto, autoestudio
+        ? 'Responde con el teclado, ' + p.nombre + (conMicro ? ' — o toca el micrófono si prefieres hablar.' : '.')
+        : 'Responde, ' + p.nombre + (conMicro ? ' — por voz o con el teclado.' : ', con el teclado.'));
       $('respuesta-aviso').textContent = '';
       $('txt-respuesta').value = '';
       $('zona-respuesta').classList.remove('oculto');
@@ -1283,7 +1331,7 @@
           $('barra-fase').textContent = p.nombre + ' responde: “' + r.texto + '”';
           return pausa(window.Vera.modoRapido ? 500 : r.tardanzaMs).then(function () { return r.texto; });
         }
-        return pedirRespuestaEnVivo(p);
+        return pedirRespuestaEnVivo(p, q);
       })
       .then(function (texto) {
         // Si el supervisor cortó la sesión mientras se esperaba la respuesta,
@@ -1368,7 +1416,11 @@
       var personas = window.Motor.personas();
       if (fase === 'deteccion') {
         var n = window.Motor.presentes().length;
-        $('barra-fase').textContent = n === 0
+        $('barra-fase').textContent = autoestudio
+          ? (n === 0
+            ? 'Todavía no te veo. Ubícate frente a la cámara.'
+            : 'Te veo' + (miNombre ? ', ' + miNombre : '') + '. Cuando quieras, oprime «Empezar ahora».')
+          : n === 0
           ? 'No veo a nadie todavía. Ubíquense frente a la cámara.'
           : 'Veo ' + n + (n === 1 ? ' persona' : ' personas') + ' en la sala.' +
             (window.Motor.salaLlena
@@ -1560,7 +1612,9 @@
         lineasFicha.map(function (l) {
           return '<li><b>' + escaparHtml(l.rotulo) + ':</b> ' + escaparHtml(l.respuesta) + '</li>';
         }).join('') + '</ul>' +
-        '<div class="pie-dudas">Lo contó él mismo al empezar, sabiendo que usted lo iba a leer. ' +
+        // Sin "él mismo": la mitad de los asesores son mujeres, y el acta va
+        // a su carpeta con su nombre encima.
+        '<div class="pie-dudas">Lo contó la propia persona al empezar, sabiendo que usted lo iba a leer. ' +
         'Lo que prefirió no responder simplemente no aparece.</div>';
       $('acta-ficha').classList.remove('oculto');
     } else {
@@ -1937,9 +1991,12 @@
       if (!gente.length) {
         cuerpo.innerHTML = '<div class="vacio-historial">' + (filtro
           ? 'Nadie con ese nombre en el historial.'
-          : 'Todavía no hay capacitaciones registradas.<br>' +
-            'Las sesiones con cámara quedan aquí al terminar. ' +
-            'Marca “Incluir demostraciones” para ver también las de prueba.') + '</div>';
+          // Con la casilla ya marcada, pedir que la marquen confunde.
+          : incluirDemos
+            ? 'Todavía no hay capacitaciones registradas, ni reales ni de demostración.'
+            : 'Todavía no hay capacitaciones registradas.<br>' +
+              'Las sesiones con cámara quedan aquí al terminar. ' +
+              'Marca “Incluir demostraciones” para ver también las de prueba.') + '</div>';
         return;
       }
       cuerpo.innerHTML = gente.map(function (p) {
@@ -2014,7 +2071,7 @@
         cuerpo.innerHTML = '<div class="vacio-historial">' + (filtro
           ? 'Ningún curso coincide con esa búsqueda.'
           : 'Todavía nadie ha pedido repetir nada.<br>' +
-            'Durante la capacitación, el botón “🙋 No entendí” anota el punto ' +
+            'Durante la capacitación, el botón “No entendí — repetir” anota el punto ' +
             'sin nombres. Aquí se ve qué partes del contenido se piden más.') + '</div>';
         return;
       }
@@ -2089,7 +2146,9 @@
     if (!sesiones.length) {
       cuerpo.innerHTML = '<div class="vacio-historial">' + (filtro
         ? 'Ninguna sesión coincide con esa búsqueda.'
-        : 'Todavía no hay sesiones registradas.<br>Marca “Incluir demostraciones” para ver las de prueba.') +
+        : incluirDemos
+          ? 'Todavía no hay sesiones registradas, ni reales ni de demostración.'
+          : 'Todavía no hay sesiones registradas.<br>Marca “Incluir demostraciones” para ver las de prueba.') +
         '</div>';
       return;
     }
@@ -2303,6 +2362,19 @@
       var r = resolverOpcion;
       resolverOpcion = null;
       r(parseInt(boton.dataset.op, 10));
+    });
+    /* Elegir con el teclado: 1, 2, 3… Un asesor que escribe todo el día no
+       tendría que agarrar el mouse en cada pregunta del examen. No actúa si
+       el foco está en un campo de texto. */
+    document.addEventListener('keydown', function (ev) {
+      if (!resolverOpcion || $('zona-opciones').classList.contains('oculto')) return;
+      if (ev.ctrlKey || ev.altKey || ev.metaKey || !/^[1-9]$/.test(ev.key)) return;
+      var t = ev.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      var boton = $('opciones-lista').querySelector('[data-op="' + (parseInt(ev.key, 10) - 1) + '"]');
+      if (!boton || boton.disabled) return;
+      ev.preventDefault();
+      boton.click();
     });
     $('btn-duda').addEventListener('click', marcarDuda);
 
@@ -2548,15 +2620,15 @@
       if (!window.Bienvenida) return;
       var config = window.Bienvenida.leerConfig();
       $('lista-bienvenida').innerHTML =
-        '<label class="chk-inline" style="margin-bottom:8px">' +
+        '<label class="chk-inline">' +
           '<input type="checkbox" data-bv="desactivado"' + (config.desactivado ? ' checked' : '') + '>' +
           '<span><b>No hacer la entrevista</b> — el curso arranca directo</span></label>' +
         window.Bienvenida.todas().map(function (q) {
           var encendida = config[q.clave] === undefined ? q.activa : !!config[q.clave];
           var aviso = q.clave === 'estado-civil'
-            ? ' <span style="color:var(--ambar)">— apagada a propósito: en una decisión laboral este dato se lee como discriminación</span>'
+            ? ' <em class="nota-ambar">— apagada a propósito: en una decisión laboral este dato se lee como discriminación</em>'
             : '';
-          return '<label class="chk-inline" style="margin-bottom:6px">' +
+          return '<label class="chk-inline">' +
             '<input type="checkbox" data-bv="' + q.clave + '"' + (encendida ? ' checked' : '') + '>' +
             '<span>' + escaparHtml(q.rotulo) + aviso + '</span></label>';
         }).join('');

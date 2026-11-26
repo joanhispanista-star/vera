@@ -15,7 +15,13 @@
   var estadoEl = null;
 
   var hablando = false;
-  var cancelado = false;
+  /* Cada decir() en curso es una "cadena" con su propia marca de cortada.
+     Antes era UNA bandera compartida: callar() la ponía en true y el decir()
+     siguiente la devolvía a false en el mismo instante, así que el texto
+     cortado seguía diciendo sus frases intercaladas con el nuevo. Pasaba cada
+     vez que el asesor oprimía "empezar" con Vera todavía saludando: el resto
+     del saludo y la entrevista sonaban mezclados, frase por frase. */
+  var cadenasVivas = [];
   var guardaResume = null;
 
   // ── La cara ─────────────────────────────────────────────
@@ -282,7 +288,8 @@
     decir: function (texto, opciones) {
       opciones = opciones || {};
       var frases = partirEnFrases(texto);
-      cancelado = false;
+      var esta = { cortada: false };
+      cadenasVivas.push(esta);
       hablando = true;
       // Que está hablando ya lo dicen la cara, el borde iluminado y las ondas;
       // el letrero de estado queda para cuando Vera escucha.
@@ -292,10 +299,10 @@
       var cadena = Promise.resolve();
       frases.forEach(function (frase, idx) {
         cadena = cadena.then(function () {
-          if (cancelado) return;
+          if (esta.cortada) return;
           return decirFrase(frase);
         }).then(function () {
-          if (cancelado) return;
+          if (esta.cortada) return;
           if (opciones.entreFrases && idx < frases.length - 1) {
             return opciones.entreFrases();
           }
@@ -303,6 +310,12 @@
       });
 
       return cadena.then(function () {
+        var i = cadenasVivas.indexOf(esta);
+        if (i >= 0) cadenasVivas.splice(i, 1);
+        // Una cadena cortada no toca nada al terminar: callar() ya dejó la
+        // cara escuchando, y si arrancó otra, la cara es de esa. Sin esto, el
+        // texto viejo devolvía la cara a "escuchar" a media frase del nuevo.
+        if (esta.cortada) return;
         hablando = false;
         moverCara(false);
         if (estadoEl) estadoEl.textContent = '';
@@ -311,7 +324,10 @@
 
     /* Corta lo que Vera esté diciendo. El decir() en curso se resuelve solo. */
     callar: function () {
-      cancelado = true;
+      // Corta TODAS las cadenas vivas (el texto y el llamado que lleve
+      // intercalado); un decir() posterior empieza una cadena nueva y limpia.
+      cadenasVivas.forEach(function (c) { c.cortada = true; });
+      cadenasVivas = [];
       if (window.speechSynthesis) speechSynthesis.cancel();
       /* Desbloquear la frase que YA está sonando. Sin esto, callar() solo
          evitaba las frases siguientes: la actual se quedaba esperando su

@@ -279,6 +279,12 @@ Título de la capacitación
 El contenido de fábrica es una inducción real para asesores de cobranza
 (incluye la Ley 2300 de 2023 — lo que un asesor tiene prohibido hacer).
 
+**Lo que Vera le dice al asesor va sin género.** Vera no sabe si habla con un
+hombre o con una mujer, y no lo pregunta: "No te preocupes" y no "Tranquilo";
+"Aprobaste" y no "Quedas aprobado"; "Acomódate" y no "Ponte cómodo". En la
+prueba del 26-nov, a una asesora llamada Camila Vera le dijo "Tranquilo" y
+"Quedas aprobado". Vale también para lo que se escriba en el editor.
+
 ## La cara de Vera (desde el 26-nov-2026)
 
 Joan pidió que Vera pareciera una persona: el dibujo no le daba al asesor la
@@ -321,6 +327,13 @@ Lo que hay que saber:
     por cuadro antes de meterlos. Los originales no están en el repo.
 - `servidor.js` responde por pedazos (206) a los videos. Sin eso, Chrome no
   deja saltar dentro del video y el bucle se queda pegado.
+- **Una voz a la vez.** Hasta el 26-nov, si a Vera la cortaban a mitad de un
+  texto largo (al oprimir "Empezar" mientras saludaba, por ejemplo), el resto
+  del texto viejo seguía sonando frase por frase, revuelto con el nuevo. La
+  causa: una sola marca de "cortado" para todos los textos, y el texto nuevo
+  la apagaba antes de que el viejo alcanzara a leerla. Ahora cada `decir()`
+  lleva su propia marca y `callar()` las corta todas. `prueba-voces.js` lo
+  comprueba.
 
 ### El diseño de las pantallas
 
@@ -341,6 +354,26 @@ Lo que hay que saber:
 - **Paleta.** `estilo.css` conserva los nombres viejos (`--fondo-tarjeta`,
   `--borde`…) como alias, porque `cuestionario.html`, `extraer.html` y
   `repaso.html` usan la misma hoja.
+- **La pregunta queda escrita** encima de las opciones o de la caja de
+  respuesta. Antes solo se oía, y quien se distraía un segundo tenía que
+  adivinar qué le estaban preguntando.
+- **Las opciones se eligen también con las teclas 1 a 9.** Cada opción lleva
+  su número. Las teclas no hacen nada con el cursor dentro de una caja de
+  texto, para no responder por accidente.
+- **En pausa, la cara lo dice.** Un velo oscuro con "En pausa" tapa el video;
+  la etiqueta de IA y los subtítulos quedan encima. Antes la cara seguía
+  moviéndose y parecía que Vera hablaba sola.
+- **Frente a una sola persona**, el botón dice "Empezar ahora" y los avisos le
+  hablan a ella ("Todavía no te veo"). "Ya estamos todos" solo tiene sentido
+  en grupo.
+- **El ícono de la pestaña va dentro del HTML** (un SVG en `data:`), no en un
+  archivo aparte. Así sale también sin internet, desde la USB y en
+  `cuestionario-asesor-suelto.html`, que viaja solo por WhatsApp.
+- **`color-scheme: dark`** hace que las barras de desplazamiento y las listas
+  del navegador salgan oscuras, como la app.
+- **Al imprimir, los colores se oscurecen** (el verde de los aciertos, el
+  turquesa y el ámbar del acta): los de pantalla, sobre papel blanco, casi no
+  se leen.
 
 ## Qué es verdad y qué no (honestidad ante el cliente)
 
@@ -390,7 +423,8 @@ nunca se bloquea por el micrófono.
   no arranca sin marcarla. Punto fuerte para vender: el video se procesa en el
   computador y **no se graba ni se sube a internet**.
 - Vera **siempre se presenta como IA** (misma regla que Camila en Cobra-IA).
-  El pin "IA" en su saco es deliberado.
+  La etiqueta "IA · Asistente virtual" encima de su cara es deliberada y no
+  se quita: desde que Vera parece una persona, es lo que cumple la regla.
 - El acta es un **indicio para el supervisor**, no una evaluación laboral
   automática. Ese matiz protege a la empresa cliente.
 
@@ -426,6 +460,9 @@ Todo es web estándar, sin dependencias ni build:
   lógica de estados/alertas para ambos modos. EMA de atención por persona.
 - `app.js` — el flujo de la sesión y el acta.
 - `servidor.js` + `ABRIR.cmd` — servir por localhost (requisito de cámara).
+- `prueba-voces.js` — comprueba que dos textos de Vera nunca suenen a la vez.
+  Con `node servidor.js` corriendo: `node prueba-voces.js`. Abre un Edge
+  oculto y mudo, y debe imprimir tres BIEN.
 
 Decisiones que no se deshacen sin hablarlo:
 1. Todo local y gratis en el MVP — cero APIs pagas antes del primer cliente.

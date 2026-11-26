@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vera — Capacitadora Virtual</title>
+<!-- Ícono de la pestaña en la misma página (data:), para que funcione sin
+     internet, desde la USB y dentro del archivo suelto que arma empaquetar.js. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230a101b'/%3E%3Cpath d='M18 19l14 27 14-27' fill='none' stroke='%2335c4c8' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
@@ -101,8 +104,8 @@
         <span id="resultado-mic" class="resultado-mic"></span>
       </div>
       <div class="prueba-mic">
-        <label for="sel-velocidad" style="font-size:13px;color:var(--texto-suave)">Velocidad de Vera:</label>
-        <select id="sel-velocidad" style="background:var(--fondo-suave);border:1px solid var(--borde);border-radius:8px;color:var(--texto);font-family:inherit;padding:6px 10px">
+        <label for="sel-velocidad" class="etiqueta-suave">Velocidad de Vera:</label>
+        <select id="sel-velocidad" class="selector">
           <option value="0.85">Lenta</option>
           <option value="1" selected>Normal</option>
           <option value="1.15">Rápida</option>
@@ -324,8 +327,7 @@
       <div class="datos-sesion" style="margin-top:18px">
         <label for="txt-nomina">Lista del equipo
           <span>(un nombre por línea; el asesor lo elige en vez de escribirlo, y así el historial no se parte en “Juan”, “Juan Pérez” y “Juanpa”)</span></label>
-        <textarea id="txt-nomina" rows="4" placeholder="Camilo Restrepo&#10;Diana Ruiz&#10;Andrés Gómez"
-          style="width:100%;background:var(--fondo-suave);border:1px solid var(--borde);border-radius:8px;color:var(--texto);font-family:inherit;font-size:15px;padding:10px 12px;resize:vertical"></textarea>
+        <textarea id="txt-nomina" class="area-texto" rows="4" placeholder="Camilo Restrepo&#10;Diana Ruiz&#10;Andrés Gómez"></textarea>
         <div class="botonera" style="justify-content:flex-start;margin-top:8px">
           <button id="btn-guardar-nomina" class="btn btn-mini">Guardar la lista</button>
         </div>

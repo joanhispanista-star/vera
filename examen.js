@@ -138,23 +138,25 @@
     if (resultado.aprobado) {
       return '¡Felicitaciones, ' + nombre + '! Acertaste ' + resultado.bien + ' de ' +
         resultado.total + ', o sea ' + resultado.nota + ' por ciento. ' +
-        'Quedas aprobado y tu constancia queda lista.';
+        'Aprobaste, y tu constancia queda lista.';
     }
     var faltaron = resultado.minimoAciertos - resultado.bien;
     var repaso = resultado.modulosARepasar.length
-      ? ' Te recomiendo repasar sobre todo: ' + resultado.modulosARepasar.slice(0, 2).join(', ') + '.'
+      ? ' Te recomiendo repasar sobre todo ' + resultado.modulosARepasar.slice(0, 2).map(function (m) {
+          return '«' + m + '»';
+        }).join(' y ') + '.'
       : '';
     if (intento >= MAX_INTENTOS) {
       return nombre + ', acertaste ' + resultado.bien + ' de ' + resultado.total +
         ' y necesitabas ' + resultado.minimoAciertos + '.' + repaso +
         ' Ya hiciste los intentos de hoy, así que esto queda en el acta para que lo revises ' +
-        'con tu supervisor y volvamos otro día. No es un castigo: es que todavía no estás listo ' +
+        'con tu supervisor y volvamos otro día. No es un castigo: es que todavía te falta un poco ' +
         'para el teléfono, y soltarte así sería peor.';
     }
     return nombre + ', acertaste ' + resultado.bien + ' de ' + resultado.total +
       ' y necesitabas ' + resultado.minimoAciertos +
       (faltaron === 1 ? ': te faltó una.' : '.') + repaso +
-      ' Tranquilo, esto pasa. Repasamos y lo volvemos a intentar.';
+      ' No te preocupes, esto pasa. Repasamos y lo volvemos a intentar.';
   }
 
   window.Examen = {
